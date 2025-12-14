@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Kid's Neon Tetris</title>
     <style>
         /* General Page Styling */
@@ -45,6 +45,7 @@
             border-radius: 5px;
             background-color: #0d0d16;
             box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+            touch-action: none; /* allow swipes/taps without page scrolling */
         }
 
         /* Sidebar for Score/Level */
@@ -128,15 +129,15 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
             width: 100%;
-            max-width: 300px;
+            max-width: min(420px, 92vw);
         }
 
         .control-btn {
             background: #333;
             border: 2px solid #555;
             color: white;
-            font-size: 1.5em;
-            padding: 15px;
+            font-size: clamp(18px, 4.2vw, 26px);
+            padding: clamp(14px, 3.6vw, 18px);
             border-radius: 10px;
             cursor: pointer;
             user-select: none;
@@ -152,7 +153,7 @@
         #btn-left { grid-column: 1; grid-row: 2; background-color: #0066ff; }
         #btn-down { grid-column: 2; grid-row: 2; background-color: #ff7f00; } /* Soft Drop */
         #btn-right { grid-column: 3; grid-row: 2; background-color: #0066ff; }
-        #btn-drop { grid-column: 1 / span 3; grid-row: 3; background-color: #ff0000; font-size: 1.2em; text-transform: uppercase; font-weight: bold; } /* Hard Drop */
+        #btn-drop { grid-column: 1 / span 3; grid-row: 3; background-color: #ff0000; font-size: clamp(14px, 3.5vw, 18px); text-transform: uppercase; font-weight: bold; } /* Hard Drop */
 
         /* Mobile Layout Adjustments */
         @media (max-width: 600px) {
@@ -231,7 +232,7 @@ const startBtn = document.getElementById('start-btn');
 // --- CONSTANTS ---
 const ROW = 20;
 const COL = 10;
-const SQ = 30; // Square size in pixels
+let SQ = 30; // Square size in pixels (will be resized for phones)
 const VACANT = "#0d0d16"; // Empty square color matches canvas background
 
 // Define the Shapes (Tetriminos)
@@ -316,6 +317,32 @@ let currentPiece;
 let particles = [];
 
 // --- FUNCTIONS ---
+
+// Responsive canvas sizing (important for phones)
+function resizeCanvasToScreen() {
+    // Choose a square size that fits the screen nicely.
+    // We try to fit the board width inside the viewport, leaving room for borders + sidebar.
+    const vw = Math.max(320, window.innerWidth);
+    const vh = Math.max(420, window.innerHeight);
+
+    // Approx available width for the board (on phone it's basically the full width)
+    const maxBoardWidth = Math.min(vw * 0.92, 420);
+    const maxBoardHeight = Math.min(vh * 0.70, 760);
+
+    const sqFromW = Math.floor(maxBoardWidth / COL);
+    const sqFromH = Math.floor(maxBoardHeight / ROW);
+    SQ = clampInt(Math.min(sqFromW, sqFromH), 18, 34);
+
+    canvas.width = COL * SQ;
+    canvas.height = ROW * SQ;
+
+    // Clear particles on resize to avoid odd pixel offsets
+    particles = [];
+}
+
+function clampInt(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v | 0));
+}
 
 // Initialize the board
 function createBoard() {
@@ -648,6 +675,7 @@ function update(){
 // --- GAME CONTROLS ---
 
 function resetGame(){
+    resizeCanvasToScreen();
     createBoard();
     score = 0;
     level = 1;
@@ -706,19 +734,136 @@ const btnUp = document.getElementById('btn-up');
 const btnDown = document.getElementById('btn-down');
 const btnDrop = document.getElementById('btn-drop');
 
-function addTouchControl(element, action){
-    // Support both mouse click and touch
-    element.addEventListener('mousedown', (e) => { e.preventDefault(); action(); draw(); });
-    element.addEventListener('touchstart', (e) => { e.preventDefault(); action(); draw(); });
+function canInput(){
+    return !(gameOver || !overlay.classList.contains('hidden'));
 }
 
-addTouchControl(btnLeft, () => currentPiece.moveLeft());
-addTouchControl(btnRight, () => currentPiece.moveRight());
-addTouchControl(btnUp, () => currentPiece.rotate());
-addTouchControl(btnDown, () => currentPiece.moveDown());
-addTouchControl(btnDrop, () => currentPiece.hardDrop());
+// Button press-and-hold support (great for phones)
+function bindHoldButton(element, action, repeatMs = 110){
+    let timer = null;
+    const start = (e) => {
+        e.preventDefault();
+        if (!canInput()) return;
+        action();
+        draw();
+        // repeat for movement/down
+        if (repeatMs > 0){
+            timer = setInterval(() => {
+                if (!canInput()) return;
+                action();
+                draw();
+            }, repeatMs);
+        }
+    };
+    const stop = () => {
+        if (timer) clearInterval(timer);
+        timer = null;
+    };
+    element.addEventListener('pointerdown', start);
+    element.addEventListener('pointerup', stop);
+    element.addEventListener('pointercancel', stop);
+    element.addEventListener('pointerleave', stop);
+}
+
+// Left/Right/Down repeat, Rotate and Hard Drop are single-tap
+bindHoldButton(btnLeft, () => currentPiece.moveLeft(), 110);
+bindHoldButton(btnRight, () => currentPiece.moveRight(), 110);
+bindHoldButton(btnDown, () => currentPiece.moveDown(), 80);
+bindHoldButton(btnUp, () => currentPiece.rotate(), 0);
+bindHoldButton(btnDrop, () => currentPiece.hardDrop(), 0);
+
+// Swipe controls on the canvas:
+// - Tap: rotate
+// - Swipe left/right: move
+// - Swipe down: hard drop (big) or soft drop (small)
+let swipeStart = null;
+let activeTouchId = null;
+
+function getCanvasPos(clientX, clientY){
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height),
+    };
+}
+
+canvas.addEventListener('touchstart', (e) => {
+    // Two-finger tap = hard drop
+    if (!canInput()) return;
+    if (e.touches && e.touches.length >= 2){
+        e.preventDefault();
+        currentPiece.hardDrop();
+        draw();
+        return;
+    }
+}, { passive:false });
+
+canvas.addEventListener('pointerdown', (e) => {
+    if (!canInput()) return;
+    e.preventDefault();
+    activeTouchId = e.pointerId;
+    const p = getCanvasPos(e.clientX, e.clientY);
+    swipeStart = { x: p.x, y: p.y, t: performance.now() };
+});
+
+canvas.addEventListener('pointerup', (e) => {
+    if (e.pointerId !== activeTouchId) return;
+    if (!canInput()) { swipeStart = null; return; }
+    e.preventDefault();
+    const p = getCanvasPos(e.clientX, e.clientY);
+    const start = swipeStart;
+    swipeStart = null;
+    activeTouchId = null;
+    if (!start) return;
+
+    const dx = p.x - start.x;
+    const dy = p.y - start.y;
+    const dist = Math.hypot(dx, dy);
+    const tapThreshold = Math.max(10, SQ * 0.35);
+    const swipeThreshold = Math.max(18, SQ * 0.65);
+
+    // Tap => rotate
+    if (dist < tapThreshold){
+        currentPiece.rotate();
+        draw();
+        return;
+    }
+
+    // Swipes
+    if (Math.abs(dx) > Math.abs(dy)){
+        // Horizontal
+        if (Math.abs(dx) < swipeThreshold) return;
+        if (dx > 0) currentPiece.moveRight();
+        else currentPiece.moveLeft();
+        draw();
+        return;
+    } else {
+        // Vertical
+        if (Math.abs(dy) < swipeThreshold) return;
+        if (dy > 0){
+            // Swipe down: big swipe = hard drop, small = soft drop a bit
+            if (dy > SQ * 2.0) currentPiece.hardDrop();
+            else currentPiece.moveDown();
+        } else {
+            // Swipe up: rotate (extra kid-friendly)
+            currentPiece.rotate();
+        }
+        draw();
+        return;
+    }
+});
+
+// Keep canvas responsive on orientation changes
+window.addEventListener('resize', () => {
+    // Only resize when not actively playing to avoid surprising mid-piece scaling
+    if (!overlay.classList.contains('hidden')) {
+        resizeCanvasToScreen();
+        drawBoard();
+    }
+});
 
 // Initial Setup
+resizeCanvasToScreen();
 createBoard();
 drawBoard(); // Draw empty board initially
 
