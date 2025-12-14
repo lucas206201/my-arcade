@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Garden Defense (Plant vs Zombie style)</title>
+  <style>
+    :root{
+      --bg:#16324f;
+      --panel:#0b1b2b;
+      --accent:#22ffb6;
+      --accent2:#ffd84d;
+      --danger:#ff4d6d;
+      --text:#f3f7ff;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:radial-gradient(1200px 800px at 50% 30%, #1f4b7a 0%, var(--bg) 35%, #0b1220 100%);
+      color:var(--text);
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      overflow:hidden;
+      touch-action:none;
+    }
+    .wrap{
+      width:min(980px, 96vw);
+      display:grid;
+      grid-template-columns: 1fr 260px;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 880px){
+      .wrap{grid-template-columns:1fr}
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      overflow:hidden;
+      position:relative;
+    }
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      background:linear-gradient(180deg, #2d8d55 0%, #1c6d40 55%, #135230 100%);
+    }
+    .sidebar{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .hud{
+      background:rgba(0,0,0,0.28);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .hudRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:700;
+      font-size:16px;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      color:var(--text);
+      min-width:90px;
+      text-align:center;
+    }
+    .sun{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .sunDot{
+      width:14px;height:14px;border-radius:50%;
+      background:radial-gradient(circle at 30% 30%, #fff7b8 0%, var(--accent2) 45%, #ffb200 100%);
+      box-shadow: 0 0 14px rgba(255,216,77,0.6);
+      flex:0 0 auto;
+    }
+    .buttons{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    .btn{
+      border:0;
+      border-radius:14px;
+      padding:12px 12px;
+      cursor:pointer;
+      font: inherit;
+      font-weight:800;
+      color:#071019;
+      background:linear-gradient(45deg, var(--accent), #5bf7ff);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      transition: transform .08s ease;
+      user-select:none;
+    }
+    .btn:active{transform:scale(0.98)}
+    .btn.secondary{
+      background:linear-gradient(45deg, #a2ff4d, #22ffb6);
+    }
+    .btn.danger{
+      background:linear-gradient(45deg, var(--danger), #ffae4d);
+    }
+    .seedBar{
+      background:rgba(0,0,0,0.28);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .seedTitle{
+      font-weight:900;
+      color:#eaffff;
+      letter-spacing:0.5px;
+    }
+    .seedGrid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    .seed{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.22);
+      cursor:pointer;
+      user-select:none;
+    }
+    .seed.selected{
+      outline: 2px solid rgba(34,255,182,0.75);
+      box-shadow: 0 0 0 6px rgba(34,255,182,0.12);
+    }
+    .seed .name{
+      font-weight:900;
+      font-size:15px;
+    }
+    .seed .cost{
+      font-weight:900;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      padding:6px 10px;
+      border-radius:999px;
+      min-width:76px;
+      text-align:center;
+    }
+    .seed[aria-disabled="true"]{
+      opacity:0.45;
+      cursor:not-allowed;
+    }
+    .help{
+      opacity:0.9;
+      font-size:13px;
+      line-height:1.35;
+    }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.35);
+      font-weight:800;
+      margin:0 2px;
+    }
+    .overlay{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,0.78);
+      padding:16px;
+    }
+    .overlay.hidden{display:none}
+    .panel{
+      width:min(520px, 92%);
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(0,0,0,0.5));
+      border:1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.45);
+      padding:18px;
+      text-align:center;
+    }
+    .panel h1{
+      margin:0 0 8px 0;
+      font-size:34px;
+      letter-spacing:0.5px;
+      color:#eaffff;
+      text-shadow:0 0 16px rgba(34,255,182,0.35);
+    }
+    .panel p{
+      margin: 8px 0 14px 0;
+      font-size:15px;
+      opacity:0.95;
+    }
+    .panel .row{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="gameCard">
+      <canvas id="game" width="720" height="520"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1 id="overlayTitle">Garden Defense</h1>
+          <p id="overlayText">
+            Protect your garden! Collect suns, plant helpers, and stop the silly zombies.
+          </p>
+          <div class="row">
+            <button class="btn" id="btnPlay">Play</button>
+            <button class="btn secondary" id="btnHow">How to Play</button>
+          </div>
+          <p class="help" id="howText" style="display:none;">
+            - Click/tap a seed packet, then click a tile to plant.<br/>
+            - Click/tap floating suns to collect them.<br/>
+            - Keyboard: <span class="kbd">1</span> Pea, <span class="kbd">2</span> Sunflower, <span class="kbd">3</span> Wall, <span class="kbd">Esc</span> cancel.<br/>
+            - If a zombie reaches the left house, you lose!
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card sidebar">
+      <div class="hud">
+        <div class="hudRow">
+          <div class="sun"><span class="sunDot"></span> Sun</div>
+          <div class="pill" id="sunCount">50</div>
+        </div>
+        <div class="hudRow">
+          <div>Wave</div>
+          <div class="pill" id="waveCount">1</div>
+        </div>
+        <div class="hudRow">
+          <div>Time</div>
+          <div class="pill" id="timeCount">0:00</div>
+        </div>
+      </div>
+
+      <div class="seedBar">
+        <div class="seedTitle">Seed Packets</div>
+        <div class="seedGrid">
+          <div class="seed" id="seed-pea" role="button" tabindex="0">
+            <div>
+              <div class="name">Pea Shooter</div>
+              <div class="help">Shoots peas at zombies</div>
+            </div>
+            <div class="cost" data-cost="100">100</div>
+          </div>
+          <div class="seed" id="seed-sun" role="button" tabindex="0">
+            <div>
+              <div class="name">Sunflower</div>
+              <div class="help">Makes more sun</div>
+            </div>
+            <div class="cost" data-cost="50">50</div>
+          </div>
+          <div class="seed" id="seed-wall" role="button" tabindex="0">
+            <div>
+              <div class="name">Wall Plant</div>
+              <div class="help">Big shield</div>
+            </div>
+            <div class="cost" data-cost="50">50</div>
+          </div>
+          <div class="seed" id="seed-shovel" role="button" tabindex="0">
+            <div>
+              <div class="name">Shovel</div>
+              <div class="help">Remove a plant</div>
+            </div>
+            <div class="cost">FREE</div>
+          </div>
+        </div>
+        <div class="help">
+          Tip: start with <b>Sunflower</b> to earn more sun.
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button class="btn" id="btnPause">Pause</button>
+        <button class="btn danger" id="btnRestart">Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Garden Defense (PVZ-style lane defense) — single-file HTML/JS
+     *
+     * Teaching notes:
+     * - The world is a 5-lane grid. Plants are placed on tiles.
+     * - Zombies spawn on the right and walk left.
+     * - Pea shooters create projectiles that damage zombies in their lane.
+     * - Sunflowers create collectible suns (currency).
+     */
+
+    // -----------------------------
+    // Canvas + basic helpers
+    // -----------------------------
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    const $ = (id) => document.getElementById(id);
+    const sunCountEl = $('sunCount');
+    const waveCountEl = $('waveCount');
+    const timeCountEl = $('timeCount');
+
+    const overlay = $('overlay');
+    const overlayTitle = $('overlayTitle');
+    const overlayText = $('overlayText');
+    const btnPlay = $('btnPlay');
+    const btnHow = $('btnHow');
+    const howText = $('howText');
+
+    const btnPause = $('btnPause');
+    const btnRestart = $('btnRestart');
+
+    // -----------------------------
+    // Game constants (easy to tweak)
+    // -----------------------------
+    const LANES = 5;
+    const COLS = 9;
+    const TILE_W = 72;
+    const TILE_H = 88;
+    const GRID_X = 120;
+    const GRID_Y = 40;
+
+    const HOUSE_X = 45;           // losing line
+    const ZOMBIE_SPAWN_X = GRID_X + COLS * TILE_W + 80;
+
+    const COLORS = {
+      pea: '#5bf7ff',
+      peaDark: '#0bb2c9',
+      sunflower: '#ffd84d',
+      wall: '#a2ff4d',
+      zombie: '#9ad0ff',
+      zombieDark: '#2a5a82',
+      grid: 'rgba(255,255,255,0.10)',
+      gridAlt: 'rgba(0,0,0,0.10)',
+      text: '#f3f7ff',
+      shadow: 'rgba(0,0,0,0.35)',
+      danger: '#ff4d6d'
+    };
+
+    // Costs
+    const COST = {
+      pea: 100,
+      sun: 50,
+      wall: 50
+    };
+
+    // -----------------------------
+    // Game state
+    // -----------------------------
+    let running = false;
+    let paused = false;
+    let gameOver = false;
+
+    let sun = 50;
+    let wave = 1;
+    let startTime = 0;
+
+    /** Selected tool:
+     *  - 'pea' | 'sun' | 'wall' | 'shovel' | null
+     */
+    let selected = null;
+
+    // Grid stores a plant object or null
+    const grid = Array.from({ length: LANES }, () => Array.from({ length: COLS }, () => null));
+
+    // Entities
+    const zombies = [];
+    const projectiles = [];
+    const suns = [];
+
+    // Spawn timers
+    let zombieSpawnTimer = 0;
+    let sunSkyTimer = 0;
+
+    // -----------------------------
+    // Utility functions
+    // -----------------------------
+    function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+    function rand(min, max){ return min + Math.random() * (max - min); }
+    function now(){ return performance.now(); }
+
+    function laneY(lane){ return GRID_Y + lane * TILE_H + TILE_H / 2; }
+    function tileRect(lane, col){
+      return {
+        x: GRID_X + col * TILE_W,
+        y: GRID_Y + lane * TILE_H,
+        w: TILE_W,
+        h: TILE_H
+      };
+    }
+
+    function pointInRect(px, py, r){
+      return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+    }
+
+    function fmtTime(ms){
+      const s = Math.floor(ms / 1000);
+      const m = Math.floor(s / 60);
+      const ss = String(s % 60).padStart(2,'0');
+      return `${m}:${ss}`;
+    }
+
+    // -----------------------------
+    // Plants
+    // -----------------------------
+    class Plant {
+      constructor(lane, col){
+        this.lane = lane;
+        this.col = col;
+        const t = tileRect(lane, col);
+        this.x = t.x + t.w * 0.5;
+        this.y = t.y + t.h * 0.55;
+        this.maxHp = 100;
+        this.hp = this.maxHp;
+        this.cooldown = 0;
+      }
+      takeDamage(d){
+        this.hp -= d;
+      }
+      isDead(){ return this.hp <= 0; }
+      update(dt){}
+      draw(ctx){}
+    }
+
+    class PeaShooter extends Plant {
+      constructor(lane, col){
+        super(lane, col);
+        this.maxHp = 120;
+        this.hp = this.maxHp;
+        this.fireRate = 1.15; // shots per second
+        this.cooldown = rand(0.1, 0.6);
+      }
+      update(dt){
+        // Only shoot if there is a zombie ahead in same lane
+        const hasTarget = zombies.some(z => z.lane === this.lane && z.x > this.x - 5);
+        if (!hasTarget) return;
+        this.cooldown -= dt;
+        if (this.cooldown <= 0){
+          this.cooldown = 1 / this.fireRate;
+          projectiles.push(new Pea(this.x + 18, this.y - 12, this.lane));
+        }
+      }
+      draw(ctx){
+        drawPlantBody(this.x, this.y, 26, COLORS.peaDark, COLORS.pea);
+        // face
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath();
+        ctx.arc(this.x - 6, this.y - 6, 3, 0, Math.PI*2);
+        ctx.arc(this.x + 2, this.y - 6, 3, 0, Math.PI*2);
+        ctx.fill();
+        // cannon
+        ctx.fillStyle = COLORS.pea;
+        roundRectFill(ctx, this.x + 8, this.y - 18, 22, 12, 6);
+      }
+    }
+
+    class Sunflower extends Plant {
+      constructor(lane, col){
+        super(lane, col);
+        this.maxHp = 100;
+        this.hp = this.maxHp;
+        this.cooldown = rand(2.0, 4.0); // seconds
+      }
+      update(dt){
+        this.cooldown -= dt;
+        if (this.cooldown <= 0){
+          this.cooldown = rand(6.0, 9.0);
+          // Create a sun that floats above the plant
+          suns.push(new SunOrb(this.x, this.y - 35, 25, 0));
+        }
+      }
+      draw(ctx){
+        drawPlantBody(this.x, this.y, 24, '#ffb200', COLORS.sunflower);
+        // petals
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 2;
+        for (let i=0;i<10;i++){
+          const a = (i/10) * Math.PI*2;
+          const px = this.x + Math.cos(a) * 18;
+          const py = this.y - 22 + Math.sin(a) * 18;
+          ctx.beginPath();
+          ctx.moveTo(this.x, this.y - 22);
+          ctx.lineTo(px, py);
+          ctx.stroke();
+        }
+      }
+    }
+
+    class WallPlant extends Plant {
+      constructor(lane, col){
+        super(lane, col);
+        this.maxHp = 420;
+        this.hp = this.maxHp;
+      }
+      draw(ctx){
+        drawPlantBody(this.x, this.y, 30, '#2b8a2b', COLORS.wall);
+        // cracks show damage
+        const pct = clamp(1 - (this.hp / this.maxHp), 0, 1);
+        if (pct > 0.25){
+          ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(this.x - 6, this.y - 35);
+          ctx.lineTo(this.x - 10, this.y - 10);
+          ctx.lineTo(this.x - 2, this.y - 2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // -----------------------------
+    // Zombies + combat
+    // -----------------------------
+    class Zombie {
+      constructor(lane){
+        this.lane = lane;
+        this.x = ZOMBIE_SPAWN_X + rand(0, 160);
+        this.y = laneY(lane);
+        this.r = 22;
+        this.maxHp = 220 + wave * 18;
+        this.hp = this.maxHp;
+        this.speed = 16 + wave * 0.6; // px/sec
+        this.damage = 14; // plant HP per second while biting
+        this.biting = false;
+        this.biteCol = -1;
+        this.flash = 0;
+      }
+      takeDamage(d){
+        this.hp -= d;
+        this.flash = 0.12;
+      }
+      isDead(){ return this.hp <= 0; }
+      update(dt){
+        this.y = laneY(this.lane);
+        this.flash = Math.max(0, this.flash - dt);
+
+        // Check if a plant is in front of the zombie (same tile)
+        this.biting = false;
+        this.biteCol = -1;
+        for (let col=0; col<COLS; col++){
+          const p = grid[this.lane][col];
+          if (!p) continue;
+          const t = tileRect(this.lane, col);
+          // If zombie overlaps the plant area, bite it
+          if (this.x - this.r < t.x + t.w * 0.75 && this.x + this.r > t.x + t.w * 0.25){
+            this.biting = true;
+            this.biteCol = col;
+            p.takeDamage(this.damage * dt);
+            break;
+          }
+        }
+
+        if (!this.biting){
+          this.x -= this.speed * dt;
+        }
+      }
+      draw(ctx){
+        const body = this.flash > 0 ? '#dff4ff' : COLORS.zombie;
+        const dark = this.flash > 0 ? '#4e8bb2' : COLORS.zombieDark;
+        // body
+        ctx.fillStyle = dark;
+        roundRectFill(ctx, this.x - 18, this.y - 34, 36, 50, 12);
+        ctx.fillStyle = body;
+        roundRectFill(ctx, this.x - 16, this.y - 36, 32, 46, 12);
+
+        // eyes
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath();
+        ctx.arc(this.x - 6, this.y - 20, 3, 0, Math.PI*2);
+        ctx.arc(this.x + 6, this.y - 18, 3, 0, Math.PI*2);
+        ctx.fill();
+
+        // mouth
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(this.x - 6, this.y - 8);
+        ctx.lineTo(this.x + 7, this.y - 8);
+        ctx.stroke();
+
+        // HP bar
+        const w = 44;
+        const pct = clamp(this.hp / this.maxHp, 0, 1);
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        roundRectFill(ctx, this.x - w/2, this.y - 52, w, 7, 4);
+        ctx.fillStyle = pct > 0.5 ? '#22ffb6' : pct > 0.2 ? '#ffd84d' : '#ff4d6d';
+        roundRectFill(ctx, this.x - w/2, this.y - 52, w * pct, 7, 4);
+      }
+    }
+
+    class Pea {
+      constructor(x, y, lane){
+        this.x = x;
+        this.y = y;
+        this.lane = lane;
+        this.r = 7;
+        this.speed = 260; // px/sec
+        this.damage = 28;
+        this.dead = false;
+      }
+      update(dt){
+        this.x += this.speed * dt;
+        // Check hit
+        for (const z of zombies){
+          if (z.lane !== this.lane) continue;
+          const dx = z.x - this.x;
+          const dy = z.y - this.y;
+          if (dx*dx + dy*dy <= (z.r + this.r) * (z.r + this.r)){
+            z.takeDamage(this.damage);
+            this.dead = true;
+            return;
+          }
+        }
+        // Off screen
+        if (this.x > canvas.width + 200) this.dead = true;
+      }
+      draw(ctx){
+        ctx.shadowColor = COLORS.pea;
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = COLORS.pea;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    // -----------------------------
+    // Suns (currency orbs)
+    // -----------------------------
+    class SunOrb {
+      constructor(x, y, value, fallSpeed){
+        this.x = x;
+        this.y = y;
+        this.value = value;
+        this.r = 16;
+        this.vy = fallSpeed; // if spawned from sky
+        this.life = 9.5; // seconds before fading
+        this.pulse = rand(0, Math.PI*2);
+        this.dead = false;
+      }
+      update(dt){
+        this.pulse += dt * 3;
+        this.life -= dt;
+        this.y += this.vy * dt;
+        if (this.life <= 0) this.dead = true;
+      }
+      draw(ctx){
+        const glow = 10 + Math.sin(this.pulse) * 3;
+        ctx.shadowColor = '#ffd84d';
+        ctx.shadowBlur = glow;
+        ctx.fillStyle = '#ffd84d';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        // inner highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.beginPath();
+        ctx.arc(this.x - 5, this.y - 5, 4, 0, Math.PI*2);
+        ctx.fill();
+      }
+      hitTest(px, py){
+        const dx = px - this.x;
+        const dy = py - this.y;
+        return dx*dx + dy*dy <= this.r*this.r;
+      }
+    }
+
+    // -----------------------------
+    // Drawing helpers
+    // -----------------------------
+    function roundRectFill(ctx, x, y, w, h, r){
+      const rr = Math.min(r, w/2, h/2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.lineTo(x + w - rr, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+      ctx.lineTo(x + w, y + h - rr);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+      ctx.lineTo(x + rr, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+      ctx.lineTo(x, y + rr);
+      ctx.quadraticCurveTo(x, y, x + rr, y);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawPlantBody(x, y, size, dark, light){
+      // shadow
+      ctx.fillStyle = COLORS.shadow;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 25, size * 0.7, size * 0.26, 0, 0, Math.PI*2);
+      ctx.fill();
+      // body
+      ctx.fillStyle = dark;
+      ctx.beginPath();
+      ctx.arc(x, y - 8, size, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = light;
+      ctx.beginPath();
+      ctx.arc(x, y - 10, size * 0.88, 0, Math.PI*2);
+      ctx.fill();
+      // stem
+      ctx.fillStyle = '#0f4f2b';
+      roundRectFill(ctx, x - 6, y + 6, 12, 26, 6);
+    }
+
+    // -----------------------------
+    // UI selection
+    // -----------------------------
+    const seeds = {
+      pea: $('seed-pea'),
+      sun: $('seed-sun'),
+      wall: $('seed-wall'),
+      shovel: $('seed-shovel')
+    };
+
+    function setSelected(tool){
+      selected = tool;
+      for (const [k, el] of Object.entries(seeds)){
+        el.classList.toggle('selected', k === tool);
+      }
+    }
+
+    function canAfford(tool){
+      if (tool === 'shovel') return true;
+      return sun >= COST[tool];
+    }
+
+    function updateSeedDisabled(){
+      for (const [k, el] of Object.entries(seeds)){
+        const disabled = (k !== 'shovel') && !canAfford(k);
+        el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      }
+    }
+
+    function spend(cost){
+      sun = Math.max(0, sun - cost);
+      sunCountEl.textContent = String(sun);
+      updateSeedDisabled();
+    }
+
+    function addSun(amount){
+      sun += amount;
+      sunCountEl.textContent = String(sun);
+      updateSeedDisabled();
+    }
+
+    // Clickable seeds
+    for (const [k, el] of Object.entries(seeds)){
+      const handler = () => {
+        if (k !== 'shovel' && !canAfford(k)) return;
+        setSelected(k);
+      };
+      el.addEventListener('click', handler);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') handler();
+      });
+    }
+
+    // Keyboard quick select
+    document.addEventListener('keydown', (e) => {
+      if (!running || paused || gameOver) return;
+      if (e.key === '1') { if (canAfford('pea')) setSelected('pea'); }
+      if (e.key === '2') { if (canAfford('sun')) setSelected('sun'); }
+      if (e.key === '3') { if (canAfford('wall')) setSelected('wall'); }
+      if (e.key === 'Escape') setSelected(null);
+    });
+
+    // -----------------------------
+    // Interaction on canvas
+    // -----------------------------
+    function canvasPoint(evt){
+      const rect = canvas.getBoundingClientRect();
+      const x = (evt.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (evt.clientY - rect.top) * (canvas.height / rect.height);
+      return { x, y };
+    }
+
+    function pickTile(px, py){
+      const col = Math.floor((px - GRID_X) / TILE_W);
+      const lane = Math.floor((py - GRID_Y) / TILE_H);
+      if (lane < 0 || lane >= LANES || col < 0 || col >= COLS) return null;
+      return { lane, col };
+    }
+
+    function handleCanvasDown(evt){
+      if (!running || paused || gameOver) return;
+      evt.preventDefault();
+      const { x, y } = canvasPoint(evt);
+
+      // First: try to collect a sun
+      for (let i = suns.length - 1; i >= 0; i--){
+        if (suns[i].hitTest(x, y)){
+          addSun(suns[i].value);
+          suns[i].dead = true;
+          return;
+        }
+      }
+
+      const tile = pickTile(x, y);
+      if (!tile) return;
+
+      const existing = grid[tile.lane][tile.col];
+
+      // Shovel removes
+      if (selected === 'shovel'){
+        if (existing){
+          grid[tile.lane][tile.col] = null;
+        }
+        return;
+      }
+
+      // Plant placement
+      if (!selected) return;
+      if (existing) return;
+      if (!canAfford(selected)) return;
+
+      if (selected === 'pea'){
+        grid[tile.lane][tile.col] = new PeaShooter(tile.lane, tile.col);
+        spend(COST.pea);
+      } else if (selected === 'sun'){
+        grid[tile.lane][tile.col] = new Sunflower(tile.lane, tile.col);
+        spend(COST.sun);
+      } else if (selected === 'wall'){
+        grid[tile.lane][tile.col] = new WallPlant(tile.lane, tile.col);
+        spend(COST.wall);
+      }
+    }
+
+    canvas.addEventListener('mousedown', handleCanvasDown);
+    canvas.addEventListener('touchstart', (e) => handleCanvasDown(e.changedTouches[0]), { passive:false });
+
+    // -----------------------------
+    // Spawning logic
+    // -----------------------------
+    function spawnZombie(){
+      // Choose a random lane
+      zombies.push(new Zombie(Math.floor(rand(0, LANES))));
+    }
+
+    function spawnSkySun(){
+      const x = rand(GRID_X + 20, GRID_X + COLS * TILE_W - 20);
+      const y = GRID_Y - 30;
+      const orb = new SunOrb(x, y, 25, 30 + rand(0, 18));
+      // Make it stop falling around grass level
+      orb.stopY = rand(GRID_Y + 40, GRID_Y + LANES * TILE_H - 60);
+      orb.update = function(dt){
+        this.pulse += dt * 3;
+        this.life -= dt;
+        if (this.y < this.stopY) this.y += this.vy * dt;
+        if (this.y >= this.stopY) this.vy = 0;
+        if (this.life <= 0) this.dead = true;
+      };
+      suns.push(orb);
+    }
+
+    // -----------------------------
+    // Game loop
+    // -----------------------------
+    let last = 0;
+    function loop(ts){
+      if (!running){ requestAnimationFrame(loop); return; }
+      if (!last) last = ts;
+      const dt = Math.min(0.033, (ts - last) / 1000);
+      last = ts;
+
+      if (!paused && !gameOver){
+        update(dt);
+      }
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function update(dt){
+      const elapsed = now() - startTime;
+      timeCountEl.textContent = fmtTime(elapsed);
+
+      // Sky suns
+      sunSkyTimer -= dt;
+      if (sunSkyTimer <= 0){
+        sunSkyTimer = rand(5.5, 8.0);
+        spawnSkySun();
+      }
+
+      // Zombie spawns get a little faster each wave
+      zombieSpawnTimer -= dt;
+      const base = Math.max(2.2, 4.8 - wave * 0.25);
+      if (zombieSpawnTimer <= 0){
+        zombieSpawnTimer = rand(base * 0.7, base * 1.15);
+        // Spawn 1 or sometimes 2
+        spawnZombie();
+        if (Math.random() < Math.min(0.15, wave * 0.03)) spawnZombie();
+      }
+
+      // Plants update
+      for (let lane=0; lane<LANES; lane++){
+        for (let col=0; col<COLS; col++){
+          const p = grid[lane][col];
+          if (!p) continue;
+          p.update(dt);
+          if (p.isDead()){
+            grid[lane][col] = null;
+          }
+        }
+      }
+
+      // Zombies update
+      for (const z of zombies){
+        z.update(dt);
+        if (z.x < HOUSE_X){
+          triggerGameOver();
+        }
+      }
+
+      // Projectiles update
+      for (const p of projectiles){
+        p.update(dt);
+      }
+
+      // Suns update
+      for (const s of suns){
+        s.update(dt);
+      }
+
+      // Cleanup dead entities
+      for (let i=zombies.length-1; i>=0; i--){
+        if (zombies[i].isDead()){
+          zombies.splice(i, 1);
+          // reward
+          addSun(10);
+        }
+      }
+      for (let i=projectiles.length-1; i>=0; i--){
+        if (projectiles[i].dead) projectiles.splice(i, 1);
+      }
+      for (let i=suns.length-1; i>=0; i--){
+        if (suns[i].dead) suns.splice(i, 1);
+      }
+
+      // Wave progression: every ~35 seconds increase difficulty
+      const newWave = 1 + Math.floor(elapsed / 35000);
+      if (newWave !== wave){
+        wave = newWave;
+        waveCountEl.textContent = String(wave);
+        // bonus sun
+        addSun(25);
+      }
+    }
+
+    // -----------------------------
+    // Rendering
+    // -----------------------------
+    function draw(){
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Lawn stripes
+      for (let lane=0; lane<LANES; lane++){
+        const y = GRID_Y + lane * TILE_H;
+        ctx.fillStyle = lane % 2 === 0 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.08)';
+        ctx.fillRect(GRID_X, y, COLS * TILE_W, TILE_H);
+      }
+
+      // Grid lines
+      ctx.strokeStyle = COLORS.grid;
+      ctx.lineWidth = 1;
+      for (let c=0; c<=COLS; c++){
+        const x = GRID_X + c * TILE_W;
+        ctx.beginPath();
+        ctx.moveTo(x, GRID_Y);
+        ctx.lineTo(x, GRID_Y + LANES * TILE_H);
+        ctx.stroke();
+      }
+      for (let r=0; r<=LANES; r++){
+        const y = GRID_Y + r * TILE_H;
+        ctx.beginPath();
+        ctx.moveTo(GRID_X, y);
+        ctx.lineTo(GRID_X + COLS * TILE_W, y);
+        ctx.stroke();
+      }
+
+      // Left house (lose line)
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      roundRectFill(ctx, 12, GRID_Y + 10, 90, LANES * TILE_H - 20, 16);
+      ctx.fillStyle = '#eaffff';
+      ctx.font = '900 18px Verdana, "Comic Sans MS", sans-serif';
+      ctx.fillText('HOME', 33, GRID_Y + 36);
+
+      // If selecting, show highlight
+      if (selected){
+        ctx.fillStyle = 'rgba(34,255,182,0.12)';
+        ctx.fillRect(GRID_X, GRID_Y, COLS*TILE_W, LANES*TILE_H);
+      }
+
+      // Plants
+      for (let lane=0; lane<LANES; lane++){
+        for (let col=0; col<COLS; col++){
+          const p = grid[lane][col];
+          if (!p) continue;
+          // HP bar (kid-friendly cue)
+          const t = tileRect(lane, col);
+          const pct = clamp(p.hp / p.maxHp, 0, 1);
+          ctx.fillStyle = 'rgba(0,0,0,0.28)';
+          roundRectFill(ctx, t.x + 10, t.y + 8, t.w - 20, 7, 4);
+          ctx.fillStyle = pct > 0.5 ? '#22ffb6' : pct > 0.2 ? '#ffd84d' : '#ff4d6d';
+          roundRectFill(ctx, t.x + 10, t.y + 8, (t.w - 20) * pct, 7, 4);
+
+          p.draw(ctx);
+        }
+      }
+
+      // Zombies
+      for (const z of zombies){
+        z.draw(ctx);
+      }
+
+      // Projectiles
+      for (const p of projectiles){
+        p.draw(ctx);
+      }
+
+      // Suns
+      for (const s of suns){
+        s.draw(ctx);
+      }
+
+      // Selection helper text
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      roundRectFill(ctx, 12, 8, 320, 26, 10);
+      ctx.fillStyle = '#eaffff';
+      ctx.font = '900 14px Verdana, "Comic Sans MS", sans-serif';
+      const sel = selected ? selected.toUpperCase() : 'NONE';
+      ctx.fillText(`Selected: ${sel}  (click a tile, or click a sun)`, 20, 26);
+
+      // Pause overlay
+      if (paused && !gameOver){
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = '#eaffff';
+        ctx.textAlign = 'center';
+        ctx.font = '900 44px Verdana, "Comic Sans MS", sans-serif';
+        ctx.fillText('PAUSED', canvas.width/2, canvas.height/2);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    // -----------------------------
+    // Game flow controls
+    // -----------------------------
+    function resetGame(){
+      for (let lane=0; lane<LANES; lane++){
+        for (let col=0; col<COLS; col++){
+          grid[lane][col] = null;
+        }
+      }
+      zombies.length = 0;
+      projectiles.length = 0;
+      suns.length = 0;
+
+      sun = 50;
+      wave = 1;
+      sunCountEl.textContent = String(sun);
+      waveCountEl.textContent = String(wave);
+      timeCountEl.textContent = '0:00';
+
+      selected = null;
+      setSelected(null);
+      updateSeedDisabled();
+
+      zombieSpawnTimer = 1.8;
+      sunSkyTimer = 2.5;
+      startTime = now();
+
+      paused = false;
+      gameOver = false;
+      btnPause.textContent = 'Pause';
+    }
+
+    function startGame(){
+      resetGame();
+      running = true;
+      overlay.classList.add('hidden');
+    }
+
+    function triggerGameOver(){
+      if (gameOver) return;
+      gameOver = true;
+      paused = false;
+      overlayTitle.textContent = 'Oh no!';
+      overlayText.textContent = 'A zombie reached your home. Try again!';
+      btnPlay.textContent = 'Play Again';
+      howText.style.display = 'none';
+      overlay.classList.remove('hidden');
+    }
+
+    btnPlay.addEventListener('click', () => startGame());
+    btnHow.addEventListener('click', () => {
+      howText.style.display = howText.style.display === 'none' ? 'block' : 'none';
+    });
+
+    btnPause.addEventListener('click', () => {
+      if (!running || gameOver) return;
+      paused = !paused;
+      btnPause.textContent = paused ? 'Resume' : 'Pause';
+    });
+
+    btnRestart.addEventListener('click', () => {
+      if (!running) return;
+      startGame();
+    });
+
+    // Initial UI state
+    updateSeedDisabled();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
+
+

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lucas Zhang — Game Arcade</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.08);
+      --panel2:rgba(255,255,255,0.04);
+      --border:rgba(255,255,255,0.14);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.78);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+      --shadow: rgba(0,0,0,0.45);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1000px 700px at 50% 20%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 55%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 20% 85%, rgba(255,77,109,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      padding:24px 16px 48px;
+    }
+
+    .wrap{
+      width:min(1100px, 96vw);
+      margin:0 auto;
+    }
+
+    header{
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow: 0 24px 80px var(--shadow);
+      padding:18px 18px 14px;
+      overflow:hidden;
+      position:relative;
+    }
+    header:before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(800px 300px at 15% 10%, rgba(91,247,255,0.14), transparent 60%),
+        radial-gradient(900px 340px at 90% 30%, rgba(255,77,109,0.12), transparent 60%),
+        radial-gradient(700px 280px at 50% 120%, rgba(255,216,77,0.10), transparent 60%);
+      pointer-events:none;
+      filter: blur(0.2px);
+      opacity:0.9;
+    }
+    header > *{ position:relative; }
+
+    h1{
+      margin:0 0 8px 0;
+      font-size:34px;
+      letter-spacing:0.4px;
+      text-shadow: 0 0 18px rgba(34,255,182,0.25);
+    }
+    .sub{
+      margin:0;
+      color:var(--muted);
+      line-height:1.45;
+      font-weight:700;
+      font-size:14px;
+    }
+
+    .credit{
+      margin-top:12px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      font-weight:900;
+      color:#eaffff;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.28);
+      color:var(--text);
+      font-weight:900;
+      font-size:12px;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 0 12px rgba(34,255,182,0.45);
+    }
+    .warn{
+      margin-top:8px;
+      color:rgba(242,246,255,0.72);
+      font-size:12px;
+      line-height:1.4;
+    }
+
+    .grid{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:14px;
+    }
+    @media (max-width: 980px){ .grid{ grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 640px){ .grid{ grid-template-columns: 1fr; } }
+
+    .card{
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow: 0 18px 60px var(--shadow);
+      padding:14px;
+      position:relative;
+      overflow:hidden;
+    }
+    .card:before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      opacity:0.7;
+      background:
+        radial-gradient(240px 180px at 15% 20%, rgba(34,255,182,0.14), transparent 65%),
+        radial-gradient(240px 180px at 80% 0%, rgba(255,216,77,0.12), transparent 60%),
+        radial-gradient(240px 180px at 100% 100%, rgba(255,77,109,0.10), transparent 60%);
+      pointer-events:none;
+    }
+    .card > *{ position:relative; }
+
+    .topRow{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-bottom:8px;
+    }
+    .logo{
+      width:56px;
+      height:56px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.28);
+      display:grid;
+      place-items:center;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      flex:0 0 auto;
+    }
+    .logo svg{ width:40px; height:40px; }
+
+    .title{
+      font-size:18px;
+      margin:0;
+      font-weight:900;
+      letter-spacing:0.2px;
+    }
+    .desc{
+      margin:0 0 10px 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+      font-weight:700;
+    }
+    .meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:12px;
+    }
+    .tag{
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.28);
+      font-size:11px;
+      font-weight:900;
+      color:rgba(242,246,255,0.90);
+    }
+    .tag.accent{ border-color: rgba(34,255,182,0.35); }
+    .tag.gold{ border-color: rgba(255,216,77,0.35); }
+    .tag.danger{ border-color: rgba(255,77,109,0.35); }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    a.btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      text-decoration:none;
+      padding:10px 12px;
+      border-radius:14px;
+      font-weight:900;
+      color:#071019;
+      background:linear-gradient(45deg, var(--accent), #5bf7ff);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      user-select:none;
+      flex:1;
+      text-align:center;
+    }
+    a.btn.secondary{
+      background:linear-gradient(45deg, var(--gold), #ffae4d);
+    }
+    a.btn:active{ transform: scale(0.99); }
+    .smallLink{
+      flex:0 0 auto;
+      color:rgba(242,246,255,0.82);
+      font-size:12px;
+      font-weight:900;
+      text-decoration:none;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.20);
+    }
+
+    footer{
+      margin-top:14px;
+      color:rgba(242,246,255,0.70);
+      font-size:12px;
+      text-align:center;
+    }
+    code{
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:8px;
+      padding:2px 6px;
+      font-weight:900;
+      color:rgba(242,246,255,0.92);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Lucas Zhang — Game Arcade</h1>
+      <p class="sub">
+        Welcome! This is a small collection of browser games. Click a game to play it in your browser.
+      </p>
+      <div class="credit">
+        <span class="pill"><span class="dot"></span> Developed by <b>Lucas Zhang</b></span>
+        <span class="pill">Hosted with <b>GitHub Pages</b></span>
+      </div>
+      <p class="warn">
+        Note: I can’t include a real elementary school name tied to a child in this page. If you want,
+        you can edit this text locally to add more personal details.
+      </p>
+    </header>
+
+    <section class="grid" aria-label="Game list">
+      <!-- Tetris -->
+      <article class="card">
+        <div class="topRow">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none">
+              <rect x="10" y="10" width="18" height="18" rx="4" fill="#00ffff"/>
+              <rect x="28" y="10" width="18" height="18" rx="4" fill="#ffff00"/>
+              <rect x="10" y="28" width="18" height="18" rx="4" fill="#be00be"/>
+              <rect x="28" y="28" width="18" height="18" rx="4" fill="#00ff00"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="title">Neon Tetris</h2>
+            <p class="desc">Kid-friendly Tetris with ghost piece + confetti clears.</p>
+          </div>
+        </div>
+        <div class="meta">
+          <span class="tag accent">Canvas</span>
+          <span class="tag gold">Keyboard</span>
+          <span class="tag">Touch Buttons</span>
+        </div>
+        <div class="actions">
+          <a class="btn" href="./Tetris.html">Play</a>
+          <a class="smallLink" href="./Tetris.html" title="Open file">Open</a>
+        </div>
+      </article>
+
+      <!-- Pinball -->
+      <article class="card">
+        <div class="topRow">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none">
+              <circle cx="40" cy="18" r="8" fill="#ffffff" opacity="0.95"/>
+              <path d="M16 52 L28 40" stroke="#00f3ff" stroke-width="6" stroke-linecap="round"/>
+              <path d="M48 52 L36 40" stroke="#00f3ff" stroke-width="6" stroke-linecap="round"/>
+              <circle cx="24" cy="22" r="6" fill="#ff00ff"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="title">Space Pinball</h2>
+            <p class="desc">Neon pinball with bumpers, screenshake, and flippers.</p>
+          </div>
+        </div>
+        <div class="meta">
+          <span class="tag accent">Physics</span>
+          <span class="tag">Canvas</span>
+        </div>
+        <div class="actions">
+          <a class="btn" href="./Pinball.html">Play</a>
+          <a class="smallLink" href="./Pinball.html">Open</a>
+        </div>
+      </article>
+
+      <!-- Garden Defense -->
+      <article class="card">
+        <div class="topRow">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none">
+              <circle cx="22" cy="32" r="9" fill="#5bf7ff"/>
+              <rect x="30" y="28" width="22" height="8" rx="4" fill="#5bf7ff"/>
+              <circle cx="44" cy="18" r="7" fill="#ffd84d"/>
+              <path d="M44 25 V42" stroke="#2eea74" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="title">Garden Defense</h2>
+            <p class="desc">Lane defense (PVZ-style): plant, shoot, and stop zombies.</p>
+          </div>
+        </div>
+        <div class="meta">
+          <span class="tag gold">Strategy</span>
+          <span class="tag">Canvas</span>
+        </div>
+        <div class="actions">
+          <a class="btn" href="./GardenDefense.html">Play</a>
+          <a class="smallLink" href="./GardenDefense.html">Open</a>
+        </div>
+      </article>
+
+      <!-- Chess AI -->
+      <article class="card">
+        <div class="topRow">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none">
+              <path d="M32 10 C26 14 26 18 32 22 C38 18 38 14 32 10Z" fill="#ffffff"/>
+              <path d="M22 50 C22 40 28 34 32 34 C36 34 42 40 42 50Z" fill="#ffffff" opacity="0.9"/>
+              <rect x="18" y="50" width="28" height="6" rx="3" fill="#22ffb6"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="title">Chess vs AI</h2>
+            <p class="desc">Play chess against a built-in minimax AI (no libraries).</p>
+          </div>
+        </div>
+        <div class="meta">
+          <span class="tag">AI</span>
+          <span class="tag accent">Minimax</span>
+        </div>
+        <div class="actions">
+          <a class="btn" href="./ChessAI.html">Play</a>
+          <a class="smallLink" href="./ChessAI.html">Open</a>
+        </div>
+      </article>
+
+      <!-- SpaceSus -->
+      <article class="card">
+        <div class="topRow">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none">
+              <ellipse cx="30" cy="34" rx="13" ry="14" fill="#22ffb6"/>
+              <rect x="20" y="42" width="8" height="12" rx="4" fill="#22ffb6"/>
+              <rect x="32" y="42" width="8" height="12" rx="4" fill="#22ffb6"/>
+              <ellipse cx="36" cy="28" rx="8" ry="5" fill="rgba(255,255,255,0.75)"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="title">SpaceSus</h2>
+            <p class="desc">Among-Us style single-player: tasks, meetings, votes, ghosts.</p>
+          </div>
+        </div>
+        <div class="meta">
+          <span class="tag danger">Social Deduction</span>
+          <span class="tag">AI Chat</span>
+        </div>
+        <div class="actions">
+          <a class="btn" href="./SpaceSus.html">Play</a>
+          <a class="smallLink" href="./SpaceSus.html">Open</a>
+        </div>
+      </article>
+
+      <!-- HoleIO -->
+      <article class="card">
+        <div class="topRow">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none">
+              <circle cx="32" cy="32" r="18" stroke="#ffffff" stroke-width="6" opacity="0.9"/>
+              <circle cx="32" cy="32" r="14" fill="rgba(0,0,0,0.8)"/>
+              <circle cx="46" cy="20" r="5" fill="#ffd84d"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="title">Mini Hole.io</h2>
+            <p class="desc">Swallow stuff to grow. AI opponents + coins + skins.</p>
+          </div>
+        </div>
+        <div class="meta">
+          <span class="tag accent">Arcade</span>
+          <span class="tag gold">Shop</span>
+        </div>
+        <div class="actions">
+          <a class="btn" href="./HoleIO.html">Play</a>
+          <a class="smallLink" href="./HoleIO.html">Open</a>
+        </div>
+      </article>
+
+      <!-- WeirdGame -->
+      <article class="card">
+        <div class="topRow">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none">
+              <path d="M14 40 C18 18 46 18 50 40" stroke="#5bf7ff" stroke-width="6" stroke-linecap="round"/>
+              <circle cx="24" cy="34" r="4" fill="#ffd84d"/>
+              <circle cx="40" cy="34" r="4" fill="#ff4d6d"/>
+              <path d="M24 48 L40 48" stroke="#22ffb6" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="title">WEIRD GAME!!!</h2>
+            <p class="desc">Reality glitch arcade: rules constantly change.</p>
+          </div>
+        </div>
+        <div class="meta">
+          <span class="tag">Chaos</span>
+          <span class="tag accent">Glitch</span>
+        </div>
+        <div class="actions">
+          <a class="btn" href="./WeirdGame.html">Play</a>
+          <a class="smallLink" href="./WeirdGame.html">Open</a>
+        </div>
+      </article>
+
+      <!-- PoopGame -->
+      <article class="card">
+        <div class="topRow">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none">
+              <rect x="16" y="22" width="32" height="30" rx="12" fill="#dbe7ff"/>
+              <ellipse cx="32" cy="38" rx="10" ry="6" fill="#5bf7ff" opacity="0.7"/>
+              <circle cx="46" cy="18" r="6" fill="#ffd84d"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="title">Poop Panic!</h2>
+            <p class="desc">Catch poop blobs, dodge stink clouds, and power flush.</p>
+          </div>
+        </div>
+        <div class="meta">
+          <span class="tag gold">Silly</span>
+          <span class="tag danger">Avoid</span>
+        </div>
+        <div class="actions">
+          <a class="btn" href="./PoopGame.html">Play</a>
+          <a class="smallLink" href="./PoopGame.html">Open</a>
+        </div>
+      </article>
+    </section>
+
+    <footer>
+      Hosting tip: put these files in a GitHub repo and enable Pages. Open <code>index.html</code>.
+    </footer>
+  </div>
+</body>
+</html>
+
+

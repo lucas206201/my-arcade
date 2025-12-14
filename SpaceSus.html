@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SpaceSus (Among-Us style) — Single File</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.08);
+      --border:rgba(255,255,255,0.14);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.75);
+      --accent:#22ffb6;
+      --danger:#ff4d6d;
+      --gold:#ffd84d;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:
+        radial-gradient(900px 700px at 50% 30%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 55%),
+        radial-gradient(900px 700px at 80% 80%, rgba(255,77,109,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      color:var(--text);
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      overflow:hidden;
+      touch-action:none;
+    }
+    .wrap{
+      width:min(1240px, 96vw);
+      display:grid;
+      grid-template-columns: 1fr 340px;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
+    .card{
+      position:relative;
+      border-radius:16px;
+      background:linear-gradient(180deg, var(--panel), rgba(255,255,255,0.03));
+      border:1px solid var(--border);
+      box-shadow:0 24px 80px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      background:radial-gradient(1200px 700px at 50% 25%, #18244f 0%, #0a0d20 55%, #070914 100%);
+      touch-action:none;
+    }
+    .side{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .hud{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:900;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      min-width:160px;
+      text-align:center;
+      font-weight:900;
+    }
+    .help{
+      font-size:13px;
+      line-height:1.4;
+      color:var(--muted);
+    }
+    .btnRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    button{
+      border:0;
+      border-radius:14px;
+      padding:12px 12px;
+      cursor:pointer;
+      font: inherit;
+      font-weight:900;
+      color:#071019;
+      background:linear-gradient(45deg, var(--accent), #5bf7ff);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      transition: transform .08s ease;
+      user-select:none;
+    }
+    button:active{transform:scale(0.98)}
+    button.secondary{background:linear-gradient(45deg, var(--gold), #ffae4d)}
+    button.danger{background:linear-gradient(45deg, var(--danger), #ffae4d)}
+
+    .controls{
+      display:none;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    .controls button{ padding:14px 10px; font-size:18px; border-radius:14px; }
+    @media (max-width: 980px){ .controls{display:grid} }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.82);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:16px;
+      z-index:10;
+    }
+    .overlay.hidden{display:none}
+    .panel{
+      width:min(740px, 92%);
+      background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(0,0,0,0.58));
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 30px 110px rgba(0,0,0,0.55);
+    }
+    .panel h1{
+      margin:0 0 8px 0;
+      font-size:30px;
+      letter-spacing:0.6px;
+      color:#eaffff;
+      text-shadow:0 0 18px rgba(34,255,182,0.32);
+    }
+    .panel p{ margin: 8px 0 14px 0; font-size:14px; color:var(--muted); }
+    .panel .row2{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.35);
+      font-weight:900;
+      margin:0 2px;
+      color:var(--text);
+    }
+    .list{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 900px){ .list{grid-template-columns:1fr 1fr} }
+    @media (max-width: 620px){ .list{grid-template-columns:1fr} }
+    .cardlet{
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.25);
+      border-radius:14px;
+      padding:10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .chat{
+      margin-top:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.25);
+      border-radius:14px;
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .chatLog{
+      height:160px;
+      overflow:auto;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.25);
+      padding:10px;
+      font-size:13px;
+      line-height:1.35;
+    }
+    .chatLine{
+      margin:0 0 6px 0;
+      color:rgba(242,246,255,0.92);
+      word-break:break-word;
+    }
+    .chatLine .who{
+      font-weight:900;
+      color:#eaffff;
+    }
+    .chatLine .sys{
+      font-weight:900;
+      color:rgba(255,216,77,0.95);
+    }
+    .chatLine .imp{
+      font-weight:900;
+      color:rgba(255,77,109,0.95);
+    }
+    .chatInputRow{
+      display:flex;
+      gap:10px;
+    }
+    .chatInput{
+      flex:1;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.35);
+      color:var(--text);
+      padding:10px 12px;
+      font: inherit;
+      font-weight:800;
+      outline:none;
+    }
+    .chatSend{
+      min-width:110px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-weight:900;
+    }
+    .dot{
+      width:12px; height:12px; border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 0 12px rgba(34,255,182,0.45);
+    }
+    .dead{ opacity:0.45; }
+    .small{
+      font-size:12px;
+      opacity:0.9;
+      line-height:1.25;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c" width="900" height="600"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1 id="ovTitle">SpaceSus</h1>
+          <p id="ovText">
+            You are a <b>Crewmate</b>. Do tasks and watch for the impostor!
+          </p>
+          <p class="small">
+            Controls: <span class="kbd">WASD</span>/<span class="kbd">Arrows</span> move,
+            <span class="kbd">E</span> do task,
+            <span class="kbd">R</span> report,
+            <span class="kbd">M</span> meeting.
+            Touch: use buttons on the right.
+          </p>
+          <div class="row2">
+            <button id="btnPlay">Play</button>
+            <button class="secondary" id="btnHow">Help</button>
+          </div>
+          <p class="help" id="how" style="display:none;margin-top:10px">
+            - Do 3 tasks to win, or vote out the impostor in a meeting.<br/>
+            - If you find a body, press Report.<br/>
+            - Meetings show where each player was last seen. Vote carefully!
+          </p>
+        </div>
+      </div>
+      <div class="overlay hidden" id="meeting">
+        <div class="panel">
+          <h1 id="meetTitle">Meeting!</h1>
+          <p id="meetText">Discuss quickly and vote. (This is single-player: AI will vote too.)</p>
+          <div class="list" id="voteList"></div>
+          <div class="chat">
+            <div class="help" style="margin:0">Chat (AI will talk too!)</div>
+            <div class="chatLog" id="chatLog" aria-live="polite"></div>
+            <div class="chatInputRow">
+              <input class="chatInput" id="chatInput" placeholder="Type your message..." maxlength="120" />
+              <button class="secondary chatSend" id="chatSend">Send</button>
+            </div>
+            <div class="help" style="margin:0">Tip: say where you were last seen, or accuse someone!</div>
+          </div>
+          <div class="row2" style="margin-top:12px">
+            <button class="secondary" id="btnSkip">Skip</button>
+            <button id="btnVote">Vote</button>
+          </div>
+          <p class="help" id="voteHint" style="margin-top:10px">
+            Tip: if someone was last seen near a body, they look suspicious.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card side">
+      <div class="hud">
+        <div class="row"><span>Tasks</span><span class="pill" id="tasks">0 / 3</span></div>
+        <div class="row"><span>Status</span><span class="pill" id="status">Ready</span></div>
+        <div class="row"><span>Time</span><span class="pill" id="time">0:00</span></div>
+        <div class="btnRow">
+          <button class="secondary" id="btnPause">Pause</button>
+          <button class="danger" id="btnRestart">Restart</button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="btnLeft">←</button>
+        <button id="btnUse" class="secondary">E</button>
+        <button id="btnRight">→</button>
+        <button id="btnMeet" class="secondary">M</button>
+        <button id="btnReport" class="danger">R</button>
+        <button id="btnDown">↓</button>
+      </div>
+
+      <div class="help">
+        This is an “Among Us”-style game with original art and simplified rules.
+        (Single-player with AI.)
+      </div>
+    </div>
+  </div>
+
+<script>
+// -----------------------------
+// SpaceSus — single file
+// -----------------------------
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const overlay = document.getElementById('overlay');
+const ovTitle = document.getElementById('ovTitle');
+const ovText = document.getElementById('ovText');
+const btnPlay = document.getElementById('btnPlay');
+const btnHow = document.getElementById('btnHow');
+const how = document.getElementById('how');
+
+const meetingEl = document.getElementById('meeting');
+const voteListEl = document.getElementById('voteList');
+const btnSkip = document.getElementById('btnSkip');
+const btnVote = document.getElementById('btnVote');
+const meetTitle = document.getElementById('meetTitle');
+const meetText = document.getElementById('meetText');
+const chatLogEl = document.getElementById('chatLog');
+const chatInputEl = document.getElementById('chatInput');
+const chatSendEl = document.getElementById('chatSend');
+
+const tasksEl = document.getElementById('tasks');
+const statusEl = document.getElementById('status');
+const timeEl = document.getElementById('time');
+const btnPause = document.getElementById('btnPause');
+const btnRestart = document.getElementById('btnRestart');
+
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+const btnDown = document.getElementById('btnDown');
+const btnUse = document.getElementById('btnUse');
+const btnReport = document.getElementById('btnReport');
+const btnMeet = document.getElementById('btnMeet');
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const rand = (a,b) => a + Math.random()*(b-a);
+const now = () => performance.now();
+const fmtTime = (ms) => {
+  const s = Math.floor(ms/1000);
+  const m = Math.floor(s/60);
+  const ss = String(s%60).padStart(2,'0');
+  return `${m}:${ss}`;
+};
+
+function resize(){
+  // Bigger ship: target aspect ratio 5:3 (1200x720)
+  const maxW = Math.min(1100, Math.floor(window.innerWidth * 0.96));
+  const maxH = Math.min(720, Math.floor(window.innerHeight * 0.86));
+  let w = maxW;
+  let h = Math.floor(w * 3/5);
+  if (h > maxH){ h = maxH; w = Math.floor(h * 5/3); }
+  canvas.width = Math.max(520, w);
+  canvas.height = Math.max(312, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// -----------------------------
+// Map layout (simple rooms)
+// -----------------------------
+// Coordinate system is in "world pixels" (BASE_W x BASE_H) and then scaled to the canvas.
+// Bigger ship = more rooms + more space between them.
+const ROOMS = [
+  { name:'Cafeteria',   x: 220, y: 160, w: 320, h: 210, col:'#223a66' },
+  { name:'Storage',     x: 560, y: 320, w: 240, h: 170, col:'#233a4a' },
+  { name:'MedBay',      x: 150, y: 430, w: 260, h: 190, col:'#2a2f5e' },
+  { name:'Engine',      x: 560, y: 520, w: 320, h: 170, col:'#3a2a5e' },
+  { name:'Weapons',     x: 650, y: 120, w: 260, h: 210, col:'#244b6d' },
+  { name:'Navigation',  x: 930, y: 150, w: 250, h: 200, col:'#20405a' },
+  { name:'Security',    x: 920, y: 390, w: 250, h: 250, col:'#2b2b3a' },
+  { name:'Comms',       x: 840, y: 300, w: 210, h: 95,  col:'#2a2a44' },
+];
+
+// Walls (rect obstacles)
+// These are in world coordinates, scaled when resizing by drawing at relative positions.
+// We'll compute a map scale to keep the same relative layout across different canvas sizes.
+// Bigger ship size (used for scaling)
+const BASE_W = 1200, BASE_H = 720;
+let scale = 1;
+function wX(x){ return x * scale; }
+function wY(y){ return y * scale; }
+
+const WALLS = [
+  // Cafeteria tables
+  { x: 310, y: 240, w: 120, h: 55 },
+  { x: 450, y: 240, w: 60,  h: 55 },
+  // Hall pillar
+  { x: 540, y: 240, w: 90,  h: 70 },
+  // Storage crates
+  { x: 610, y: 380, w: 90,  h: 50 },
+  { x: 720, y: 380, w: 60,  h: 50 },
+  // Engine console block
+  { x: 700, y: 585, w: 90,  h: 45 },
+  // MedBay bed
+  { x: 200, y: 500, w: 140, h: 45 },
+  // Security racks
+  { x: 990, y: 470, w: 120, h: 50 },
+  // Navigation chair
+  { x: 1010, y: 245, w: 90, h: 45 },
+];
+
+const TASK_CONSOLES = [
+  // Lots of possible task consoles so each round feels different
+  { room:'Cafeteria',  x: 300, y: 210 },
+  { room:'Cafeteria',  x: 430, y: 330 },
+  { room:'Weapons',    x: 770, y: 210 },
+  { room:'Weapons',    x: 840, y: 300 },
+  { room:'Navigation', x: 1040, y: 230 },
+  { room:'Navigation', x: 980,  y: 310 },
+  { room:'Storage',    x: 650,  y: 390 },
+  { room:'MedBay',     x: 250,  y: 520 },
+  { room:'Engine',     x: 700,  y: 600 },
+  { room:'Security',   x: 1040, y: 520 },
+  { room:'Comms',      x: 930,  y: 332 },
+];
+
+const MEETING_BUTTON = { x: 380, y: 310, r: 20 }; // in Cafeteria
+
+function recomputeScale(){
+  scale = Math.min(canvas.width / BASE_W, canvas.height / BASE_H);
+}
+recomputeScale();
+window.addEventListener('resize', recomputeScale);
+
+function pointInRect(px,py, r){
+  return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+}
+
+function getRoomAt(x,y){
+  for (const r of ROOMS){
+    const rr = { x:wX(r.x), y:wY(r.y), w:wX(r.w), h:wY(r.h) };
+    if (pointInRect(x,y, rr)) return r.name;
+  }
+  return 'Hall';
+}
+
+function collidesWalls(x,y,rad){
+  for (const w of WALLS){
+    const rx = wX(w.x), ry = wY(w.y), rw = wX(w.w), rh = wY(w.h);
+    const cx = clamp(x, rx, rx + rw);
+    const cy = clamp(y, ry, ry + rh);
+    const dx = x - cx, dy = y - cy;
+    if (dx*dx + dy*dy < rad*rad) return true;
+  }
+  return false;
+}
+
+function keepInBounds(ent){
+  const pad = ent.r + 6;
+  ent.x = clamp(ent.x, pad, canvas.width - pad);
+  ent.y = clamp(ent.y, pad, canvas.height - pad);
+}
+
+// -----------------------------
+// Players (AI + you)
+// -----------------------------
+const COLORS = [
+  '#22ffb6','#ff4d6d','#ffd84d','#5bf7ff','#a2ff4d','#be00be','#ff7f00','#0066ff',
+  '#ff00ff','#00ff00','#00ffff','#ff0000','#ffffff','#c0ffee'
+];
+const NAMES = ['Nova','Zig','Bloop','Mimi','Orion','Pip','Glim','Roo','Byte','Luna','Cosmo','Bean','Fizz','Kip'];
+
+function makeCrew(count){
+  const crew = [];
+  for (let i=0;i<count;i++){
+    // Spawn them in Cafeteria, but *not* inside walls/obstacles.
+    // This prevents the “everyone is stuck” bug if a spawn overlaps a table.
+    const spawnR = wX(14);
+    let sx = wX(260 + (i % 6) * 52);
+    let sy = wY(200 + Math.floor(i / 6) * 42);
+    // Try a few random jitter attempts if we still collide.
+    for (let tries = 0; tries < 20; tries++){
+      if (!collidesWalls(sx, sy, spawnR)) break;
+      sx = wX(240 + rand(0, 260));
+      sy = wY(180 + rand(0, 120));
+    }
+    crew.push({
+      id: i,
+      name: NAMES[i % NAMES.length],
+      col: COLORS[i % COLORS.length],
+      role: 'crew', // 'crew' | 'impostor'
+      alive: true,
+      // Spawn them spread out (and not inside tables)
+      x: sx,
+      y: sy,
+      vx: 0,
+      vy: 0,
+      r: wX(14),
+      speed: wX(100),
+      target: null,     // {x,y,room}
+      lastRoom: 'Cafeteria',
+      taskCooldown: rand(1,3),
+      suspicion: 0,     // used in voting
+      killCd: 0
+    });
+  }
+  return crew;
+}
+
+let crew = [];
+let you = null;
+let impostor = null;
+
+// Bodies: {x,y, byId, victimId, room}
+const bodies = [];
+
+// Tasks for YOU: pick 3 random consoles
+let myTasks = [];
+let tasksDone = 0;
+let taskProgress = 0;
+let doingTask = false;
+
+// Game state
+let running = false;
+let paused = false;
+let gameOver = false;
+let startTime = 0;
+let lastT = 0;
+
+// Input
+const keys = new Set();
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ') e.preventDefault();
+  keys.add(e.key);
+  if (!running || paused || gameOver) return;
+  if (e.key === 'e' || e.key === 'E') tryDoTask();
+  if (e.key === 'r' || e.key === 'R') tryReport();
+  if (e.key === 'm' || e.key === 'M') tryMeeting();
+});
+document.addEventListener('keyup', (e) => keys.delete(e.key));
+
+// Mobile buttons (hold left/right/down for movement, use/report/meet as taps)
+const hold = { left:false, right:false, down:false, up:false };
+function bindHold(el, which){
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); hold[which] = true; });
+  window.addEventListener('pointerup', () => { hold[which] = false; });
+  el.addEventListener('pointerleave', () => { hold[which] = false; });
+}
+bindHold(btnLeft, 'left');
+bindHold(btnRight, 'right');
+bindHold(btnDown, 'down');
+btnUse.addEventListener('click', () => tryDoTask());
+btnReport.addEventListener('click', () => tryReport());
+btnMeet.addEventListener('click', () => tryMeeting());
+
+btnPlay.addEventListener('click', () => start());
+btnHow.addEventListener('click', () => how.style.display = (how.style.display === 'none') ? 'block' : 'none');
+btnRestart.addEventListener('click', () => { if (running) start(); });
+btnPause.addEventListener('click', () => {
+  if (!running || gameOver) return;
+  paused = !paused;
+  btnPause.textContent = paused ? 'Resume' : 'Pause';
+});
+
+// Meeting UI state
+let meetingActive = false;
+let votedFor = null; // player id or 'skip'
+let chat = [];
+let aiChatTimer = null;
+
+btnSkip.addEventListener('click', () => {
+  votedFor = 'skip';
+  renderVoteSelection();
+});
+btnVote.addEventListener('click', () => finishMeeting());
+
+function addChatLine(who, text, kind = 'normal'){
+  // kind: normal | sys | imp
+  chat.push({ who, text, kind });
+  if (chat.length > 60) chat.shift();
+  renderChat();
+}
+
+function renderChat(){
+  chatLogEl.innerHTML = '';
+  for (const m of chat){
+    const div = document.createElement('div');
+    div.className = 'chatLine';
+    const whoSpan = document.createElement('span');
+    whoSpan.className = 'who' + (m.kind === 'sys' ? ' sys' : m.kind === 'imp' ? ' imp' : '');
+    whoSpan.textContent = (m.kind === 'sys') ? 'SYSTEM' : m.who;
+    const textSpan = document.createElement('span');
+    textSpan.textContent = `: ${m.text}`;
+    div.appendChild(whoSpan);
+    div.appendChild(textSpan);
+    chatLogEl.appendChild(div);
+  }
+  // Auto-scroll to bottom
+  chatLogEl.scrollTop = chatLogEl.scrollHeight;
+}
+
+function sendChat(){
+  if (!meetingActive) return;
+  const raw = (chatInputEl.value || '').trim();
+  if (!raw) return;
+  chatInputEl.value = '';
+  addChatLine('You', raw, you.alive ? 'normal' : 'sys');
+}
+
+chatSendEl.addEventListener('click', sendChat);
+chatInputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){
+    e.preventDefault();
+    sendChat();
+  }
+});
+
+function aiSaySomething(){
+  if (!meetingActive) return;
+  const alive = crew.filter(p => p.alive && p.id !== you.id);
+  if (alive.length === 0) return;
+  const speaker = alive[Math.floor(rand(0, alive.length))];
+
+  const last = speaker.lastRoom;
+  const bodyRooms = bodies.map(b => b.room);
+  const suspiciousRooms = bodyRooms.length ? bodyRooms : ['Cafeteria','Storage','Weapons','Security','MedBay','Engine','Navigation','Comms'];
+  const hotRoom = suspiciousRooms[Math.floor(rand(0, suspiciousRooms.length))];
+
+  // Impostor lies more + deflects
+  const isImp = speaker.role === 'impostor';
+  const templatesCrew = [
+    `I was in ${last}.`,
+    `I think I saw someone near ${hotRoom}.`,
+    `Why was anyone in ${hotRoom}?`,
+    `I was doing tasks, not sus!`,
+    `I’m skipping unless we have proof.`
+  ];
+  const templatesImp = [
+    `I was in ${last}. Totally normal.`,
+    `I saw someone run away from ${hotRoom}...`,
+    `We should vote someone else, not me.`,
+    `I think ${crew.filter(p => p.alive && p.id !== speaker.id)[Math.floor(rand(0, crew.filter(p => p.alive && p.id !== speaker.id).length))]?.name ?? 'someone'} is sus.`,
+    `No proof. Skip.`
+  ];
+
+  const text = (isImp ? templatesImp : templatesCrew)[Math.floor(rand(0, 5))];
+  addChatLine(speaker.name, text, isImp ? 'imp' : 'normal');
+}
+
+function updateHUD(){
+  tasksEl.textContent = `${tasksDone} / 3`;
+  timeEl.textContent = fmtTime(now() - startTime);
+}
+function setStatus(s){ statusEl.textContent = s; }
+
+function pickMyTasks(){
+  const pool = TASK_CONSOLES.slice();
+  // Shuffle
+  for (let i=pool.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  myTasks = pool.slice(0, 3).map((t, idx) => ({
+    id: idx,
+    name: `Task ${idx+1} @ ${t.room}`,
+    x: wX(t.x),
+    y: wY(t.y),
+    room: t.room,
+    done: false
+  }));
+}
+
+function start(){
+  // Reset
+  recomputeScale();
+  // More players!
+  crew = makeCrew(12);
+  // Choose impostor among AI (not you)
+  you = crew[0];
+  you.name = 'You';
+  you.col = '#ffffff';
+  you.ghost = false;
+  const impIdx = 1 + Math.floor(Math.random()*(crew.length-1));
+  impostor = crew[impIdx];
+  impostor.role = 'impostor';
+  impostor.killCd = 4;
+
+  bodies.length = 0;
+  tasksDone = 0;
+  taskProgress = 0;
+  doingTask = false;
+  pickMyTasks();
+
+  running = true;
+  paused = false;
+  gameOver = false;
+  startTime = now();
+  lastT = 0;
+  meetingActive = false;
+  votedFor = null;
+
+  btnPause.textContent = 'Pause';
+  setStatus('Do tasks!');
+  overlay.classList.add('hidden');
+  meetingEl.classList.add('hidden');
+  updateHUD();
+}
+
+function end(title, text){
+  gameOver = true;
+  paused = false;
+  ovTitle.textContent = title;
+  ovText.innerHTML = text;
+  btnPlay.textContent = 'Play Again';
+  overlay.classList.remove('hidden');
+}
+
+function dist2(ax,ay,bx,by){
+  const dx = ax - bx, dy = ay - by;
+  return dx*dx + dy*dy;
+}
+
+// -----------------------------
+// Task interaction
+// -----------------------------
+function nearestMyTask(){
+  let best = null;
+  let bestD = Infinity;
+  for (const t of myTasks){
+    if (t.done) continue;
+    const d = dist2(you.x, you.y, t.x, t.y);
+    if (d < bestD){ bestD = d; best = t; }
+  }
+  return { task: best, d2: bestD };
+}
+
+function tryDoTask(){
+  if (meetingActive || gameOver || paused) return;
+  // Ghosts can still do tasks (keeps the game fun even after you die)
+  const {task, d2} = nearestMyTask();
+  if (!task) return;
+  if (d2 < (wX(28) * wX(28))){
+    doingTask = true;
+    taskProgress = 0;
+    setStatus(`Doing task...`);
+  }
+}
+
+// -----------------------------
+// Report / Meeting
+// -----------------------------
+function nearestBody(){
+  let best = null;
+  let bestD = Infinity;
+  for (const b of bodies){
+    const d = dist2(you.x, you.y, b.x, b.y);
+    if (d < bestD){ bestD = d; best = b; }
+  }
+  return { body: best, d2: bestD };
+}
+
+function tryReport(){
+  if (meetingActive || gameOver || paused) return;
+  // Ghosts cannot report
+  if (!you.alive) return;
+  const {body, d2} = nearestBody();
+  if (!body) return;
+  if (d2 < (wX(30) * wX(30))){
+    openMeeting(`Body reported in ${body.room}!`);
+  }
+}
+
+function tryMeeting(){
+  if (meetingActive || gameOver || paused) return;
+  // Ghosts cannot call meetings
+  if (!you.alive) return;
+  // Need to be near meeting button
+  const bx = wX(MEETING_BUTTON.x), by = wY(MEETING_BUTTON.y);
+  if (dist2(you.x, you.y, bx, by) < (wX(MEETING_BUTTON.r) * wX(MEETING_BUTTON.r))){
+    openMeeting('Emergency meeting!');
+  }
+}
+
+function openMeeting(reason){
+  meetingActive = true;
+  doingTask = false;
+  taskProgress = 0;
+  votedFor = null;
+
+  meetTitle.textContent = 'Meeting!';
+  meetText.textContent = reason + ' Vote who seems suspicious.';
+  meetingEl.classList.remove('hidden');
+
+  // Chat setup
+  chat = [];
+  addChatLine('SYSTEM', reason, 'sys');
+  addChatLine('SYSTEM', 'Type in chat and then vote. AI will talk too.', 'sys');
+  // A couple instant AI lines
+  aiSaySomething();
+  if (Math.random() < 0.7) aiSaySomething();
+  // Start AI chatter timer
+  if (aiChatTimer) clearInterval(aiChatTimer);
+  aiChatTimer = setInterval(() => {
+    if (!meetingActive) return;
+    // 35% chance each tick
+    if (Math.random() < 0.35) aiSaySomething();
+  }, 900);
+  // focus chat input
+  setTimeout(() => chatInputEl.focus(), 10);
+
+  // Increase suspicion for players near any body last room
+  for (const p of crew){
+    p.suspicion = 0;
+    if (!p.alive) continue;
+    for (const b of bodies){
+      if (p.lastRoom === b.room) p.suspicion += 2;
+    }
+    // small random noise so it's not deterministic
+    p.suspicion += rand(0, 1.2);
+  }
+
+  renderVoteList();
+  setStatus('Meeting!');
+}
+
+function renderVoteList(){
+  voteListEl.innerHTML = '';
+  for (const p of crew){
+    const el = document.createElement('div');
+    el.className = 'cardlet' + (p.alive ? '' : ' dead');
+    el.dataset.id = String(p.id);
+    el.innerHTML = `
+      <div>
+        <div class="badge"><span class="dot" style="background:${p.col}"></span>${p.name}</div>
+        <div class="small">Last seen: <b>${p.lastRoom}</b></div>
+      </div>
+      <button class="secondary" ${p.alive ? '' : 'disabled'} style="min-width:110px">Vote</button>
+    `;
+    el.querySelector('button').addEventListener('click', () => {
+      if (!p.alive) return;
+      votedFor = p.id;
+      renderVoteSelection();
+    });
+    voteListEl.appendChild(el);
+  }
+  renderVoteSelection();
+}
+
+function renderVoteSelection(){
+  // Highlight selection by adjusting borders
+  for (const child of voteListEl.children){
+    child.style.outline = 'none';
+    const id = Number(child.dataset.id);
+    if (votedFor === id){
+      child.style.outline = '2px solid rgba(34,255,182,0.85)';
+    }
+  }
+}
+
+function finishMeeting(){
+  // If no selection, treat as skip
+  if (votedFor == null) votedFor = 'skip';
+
+  // AI votes: each alive AI votes based on suspicion (including impostor who tries to dodge)
+  const votes = new Map(); // id|'skip' -> count
+  const addVote = (k) => votes.set(k, (votes.get(k) || 0) + 1);
+
+  // Your vote (ghosts don't vote)
+  if (you.alive){
+    addVote(votedFor);
+  } else {
+    addVote('skip');
+  }
+
+  for (const p of crew){
+    if (!p.alive) continue;
+    if (p.id === you.id) continue;
+    // Basic AI: crewmates vote most suspicious; impostor votes someone else
+    let choice = 'skip';
+    if (p.role === 'impostor'){
+      // vote for the most suspicious non-impostor (or random)
+      const candidates = crew.filter(x => x.alive && x.id !== p.id);
+      candidates.sort((a,b) => b.suspicion - a.suspicion);
+      choice = candidates[0]?.id ?? 'skip';
+      // avoid voting self obviously (already)
+    } else {
+      const candidates = crew.filter(x => x.alive);
+      candidates.sort((a,b) => b.suspicion - a.suspicion);
+      // Sometimes skip
+      if (Math.random() < 0.18) choice = 'skip';
+      else choice = candidates[0]?.id ?? 'skip';
+    }
+    addVote(choice);
+  }
+
+  // Determine highest vote
+  let bestKey = 'skip';
+  let bestCount = -1;
+  let tie = false;
+  for (const [k, c] of votes.entries()){
+    if (c > bestCount){ bestCount = c; bestKey = k; tie = false; }
+    else if (c === bestCount){ tie = true; }
+  }
+
+  let resultText = '';
+  if (tie || bestKey === 'skip'){
+    resultText = 'No one was ejected (tie/skip).';
+  } else {
+    const target = crew.find(p => p.id === bestKey);
+    if (target && target.alive){
+      target.alive = false;
+      resultText = `${target.name} was ejected!`;
+      // If impostor ejected => win
+      if (target.role === 'impostor'){
+        closeMeeting();
+        end('You Win!', `You voted out the impostor. Great job!`);
+        return;
+      }
+    } else {
+      resultText = 'Nobody was ejected.';
+    }
+  }
+
+  closeMeeting();
+  setStatus(resultText);
+}
+
+function closeMeeting(){
+  meetingActive = false;
+  meetingEl.classList.add('hidden');
+  votedFor = null;
+  if (aiChatTimer){
+    clearInterval(aiChatTimer);
+    aiChatTimer = null;
+  }
+}
+
+// -----------------------------
+// AI movement + impostor kills
+// -----------------------------
+function pickTarget(p){
+  const room = ROOMS[Math.floor(rand(0, ROOMS.length))];
+  p.target = {
+    room: room.name,
+    x: wX(room.x + rand(40, room.w - 40)),
+    y: wY(room.y + rand(40, room.h - 40))
+  };
+}
+
+function moveTowards(p, tx, ty, dt){
+  const dx = tx - p.x, dy = ty - p.y;
+  const m = Math.hypot(dx,dy) || 1;
+  const vx = (dx / m) * p.speed;
+  const vy = (dy / m) * p.speed;
+  const nx = p.x + vx * dt;
+  const ny = p.y + vy * dt;
+  // collision with walls: simple try x then y
+  let cx = nx, cy = p.y;
+  if (!collidesWalls(cx, cy, p.r)) p.x = cx;
+  cx = p.x; cy = ny;
+  if (!collidesWalls(cx, cy, p.r)) p.y = cy;
+  keepInBounds(p);
+}
+
+function impostorTryKill(dt){
+  if (!impostor.alive) return;
+  impostor.killCd = Math.max(0, impostor.killCd - dt);
+  if (impostor.killCd > 0) return;
+  // Find a nearby victim who is alone-ish (few witnesses close)
+  let bestVictim = null;
+  for (const p of crew){
+    if (!p.alive) continue;
+    if (p.id === impostor.id) continue;
+    const d = Math.sqrt(dist2(impostor.x, impostor.y, p.x, p.y));
+    if (d > wX(34)) continue;
+    // witnesses count within radius
+    let witnesses = 0;
+    for (const w of crew){
+      if (!w.alive) continue;
+      if (w.id === impostor.id || w.id === p.id) continue;
+      if (dist2(w.x,w.y, p.x,p.y) < wX(90)*wX(90)) witnesses++;
+    }
+    if (witnesses <= 1){
+      bestVictim = p;
+      break;
+    }
+  }
+
+  if (!bestVictim) return;
+
+  // Kill
+  bestVictim.alive = false;
+  bodies.push({ x: bestVictim.x, y: bestVictim.y, byId: impostor.id, victimId: bestVictim.id, room: getRoomAt(bestVictim.x, bestVictim.y) });
+  impostor.killCd = rand(5.5, 7.5);
+
+  // If you died: become a ghost instead of ending the game
+  if (bestVictim.id === you.id){
+    you.ghost = true;
+    setStatus('You got eliminated... You are now a GHOST! 👻 (finish tasks to win)');
+  } else {
+    setStatus(`${bestVictim.name} disappeared...`);
+  }
+}
+
+// -----------------------------
+// Rendering
+// -----------------------------
+function roundRectFill(x,y,w,h,r, fill){
+  ctx.fillStyle = fill;
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + w - rr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+  ctx.lineTo(x + w, y + h - rr);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  ctx.lineTo(x + rr, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+  ctx.lineTo(x, y + rr);
+  ctx.quadraticCurveTo(x, y, x + rr, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawRoom(r){
+  const x = wX(r.x), y = wY(r.y), w = wX(r.w), h = wY(r.h);
+  roundRectFill(x, y, w, h, wX(16), 'rgba(255,255,255,0.06)');
+  ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+  ctx.lineWidth = wX(2);
+  ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = `900 ${Math.floor(wX(14))}px Verdana, "Comic Sans MS", sans-serif`;
+  ctx.fillText(r.name, x + wX(12), y + wX(22));
+}
+
+function drawWall(w){
+  const x = wX(w.x), y = wY(w.y), ww = wX(w.w), hh = wY(w.h);
+  roundRectFill(x, y, ww, hh, wX(10), 'rgba(0,0,0,0.35)');
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  ctx.lineWidth = wX(2);
+  ctx.strokeRect(x, y, ww, hh);
+}
+
+function drawConsole(x,y, active){
+  ctx.fillStyle = active ? 'rgba(34,255,182,0.9)' : 'rgba(255,216,77,0.8)';
+  ctx.shadowColor = active ? 'rgba(34,255,182,0.8)' : 'rgba(255,216,77,0.7)';
+  ctx.shadowBlur = wX(16);
+  ctx.beginPath();
+  ctx.arc(x, y, wX(10), 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function drawMeetingButton(){
+  const x = wX(MEETING_BUTTON.x), y = wY(MEETING_BUTTON.y);
+  ctx.fillStyle = 'rgba(91,247,255,0.75)';
+  ctx.shadowColor = 'rgba(91,247,255,0.8)';
+  ctx.shadowBlur = wX(18);
+  ctx.beginPath();
+  ctx.arc(x, y, wX(MEETING_BUTTON.r), 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.font = `900 ${Math.floor(wX(16))}px Verdana`;
+  ctx.fillText('M', x - wX(5), y + wX(6));
+}
+
+function drawBody(b){
+  ctx.fillStyle = 'rgba(255,77,109,0.85)';
+  ctx.shadowColor = 'rgba(255,77,109,0.55)';
+  ctx.shadowBlur = wX(14);
+  ctx.beginPath();
+  ctx.ellipse(b.x, b.y, wX(18), wX(12), 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // bone
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  roundRectFill(b.x - wX(6), b.y - wX(3), wX(12), wX(6), wX(3), 'rgba(255,255,255,0.85)');
+}
+
+function drawCrew(p){
+  // Draw living players, and draw YOU as a ghost if you are dead.
+  if (!p.alive && p.id !== you.id) return;
+  const isGhost = (p.id === you.id && !p.alive);
+
+  // Ghosts are semi-transparent and floaty
+  const prevAlpha = ctx.globalAlpha;
+  if (isGhost) ctx.globalAlpha = 0.45;
+
+  // legs (simple Among-Us style boots)
+  // Draw legs FIRST so the body overlaps them nicely.
+  const legW = p.r * 0.55;
+  const legH = p.r * 0.60;
+  const legY = p.y + p.r * 0.55;
+  const gap = p.r * 0.18;
+  const leftX = p.x - gap - legW;
+  const rightX = p.x + gap;
+
+  // subtle shadow under feet
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, legY + legH * 0.55, p.r * 0.85, p.r * 0.30, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // boots
+  ctx.fillStyle = p.col;
+  roundRectFill(leftX, legY, legW, legH, p.r * 0.22, p.col);
+  roundRectFill(rightX, legY, legW, legH, p.r * 0.22, p.col);
+  // inner gap (makes two legs clearer)
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  roundRectFill(p.x - gap * 0.45, legY + p.r * 0.10, gap * 0.9, legH, p.r * 0.18, 'rgba(0,0,0,0.18)');
+
+  // body
+  ctx.fillStyle = p.col;
+  ctx.shadowColor = p.col;
+  ctx.shadowBlur = wX(12);
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, p.r, p.r*1.05, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Ghost tail (a little wavy blob under the body)
+  if (isGhost){
+    const wiggle = Math.sin((now() * 0.008) + p.id) * p.r * 0.20;
+    ctx.fillStyle = p.col;
+    ctx.beginPath();
+    ctx.ellipse(p.x + wiggle, p.y + p.r * 1.05, p.r * 0.70, p.r * 0.45, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // visor
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.beginPath();
+  ctx.ellipse(p.x + p.r*0.25, p.y - p.r*0.15, p.r*0.55, p.r*0.35, 0, 0, Math.PI*2);
+  ctx.fill();
+  // name
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = `900 ${Math.floor(wX(12))}px Verdana`;
+  ctx.textAlign = 'center';
+  ctx.fillText(p.name, p.x, p.y - p.r*1.5);
+  ctx.textAlign = 'left';
+
+  // Restore alpha
+  ctx.globalAlpha = prevAlpha;
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // rooms
+  for (const r of ROOMS) drawRoom(r);
+  for (const w of WALLS) drawWall(w);
+
+  // consoles (tasks)
+  for (const t of myTasks){
+    drawConsole(t.x, t.y, !t.done);
+  }
+
+  // meeting button
+  drawMeetingButton();
+
+  // bodies
+  for (const b of bodies) drawBody(b);
+
+  // crew
+  for (const p of crew) drawCrew(p);
+
+  // hints
+  ctx.fillStyle = 'rgba(0,0,0,0.30)';
+  roundRectFill(wX(12), wY(10), wX(420), wX(34), wX(12), 'rgba(0,0,0,0.30)');
+  ctx.fillStyle = 'rgba(255,255,255,0.90)';
+  ctx.font = `900 ${Math.floor(wX(14))}px Verdana, "Comic Sans MS", sans-serif`;
+  ctx.fillText(`E: Task   R: Report   M: Meeting`, wX(24), wY(33));
+
+  // task progress bar
+  if (doingTask){
+    const barW = wX(260), barH = wX(14);
+    const x = you.x - barW/2, y = you.y + you.r*1.2;
+    roundRectFill(x, y, barW, barH, wX(8), 'rgba(0,0,0,0.45)');
+    roundRectFill(x, y, barW * clamp(taskProgress,0,1), barH, wX(8), 'rgba(34,255,182,0.90)');
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = `900 ${Math.floor(wX(12))}px Verdana`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Doing task...', you.x, y - wX(10));
+    ctx.textAlign = 'left';
+  }
+
+  // show nearest body / task prompts
+  const { body, d2: bd2 } = nearestBody();
+  if (body && bd2 < wX(90)*wX(90)){
+    ctx.fillStyle = 'rgba(255,77,109,0.95)';
+    ctx.font = `900 ${Math.floor(wX(14))}px Verdana`;
+    ctx.fillText('Press R to REPORT!', you.x - wX(62), you.y - wX(42));
+  }
+  const { task, d2: td2 } = nearestMyTask();
+  if (task && !task.done && td2 < wX(90)*wX(90)){
+    ctx.fillStyle = 'rgba(255,216,77,0.95)';
+    ctx.font = `900 ${Math.floor(wX(14))}px Verdana`;
+    ctx.fillText('Press E to DO TASK', you.x - wX(70), you.y - wX(26));
+  }
+}
+
+// -----------------------------
+// Update loop
+// -----------------------------
+function update(dt){
+  // If meeting active, freeze world
+  if (meetingActive) return;
+
+  // You movement
+  const up = keys.has('ArrowUp') || keys.has('w') || keys.has('W') || hold.up;
+  const down = keys.has('ArrowDown') || keys.has('s') || keys.has('S') || hold.down;
+  const left = keys.has('ArrowLeft') || keys.has('a') || keys.has('A') || hold.left;
+  const right = keys.has('ArrowRight') || keys.has('d') || keys.has('D') || hold.right;
+  let ix = (left ? -1 : 0) + (right ? 1 : 0);
+  let iy = (up ? -1 : 0) + (down ? 1 : 0);
+  const im = Math.hypot(ix,iy);
+  if (im > 1){ ix /= im; iy /= im; }
+
+  const speed = you.alive ? wX(140) : wX(170); // ghosts drift a bit faster
+  const nx = you.x + ix * speed * dt;
+  const ny = you.y + iy * speed * dt;
+  // Collisions x then y (ghosts can pass through walls)
+  if (!you.alive || !collidesWalls(nx, you.y, you.r)) you.x = nx;
+  if (!you.alive || !collidesWalls(you.x, ny, you.r)) you.y = ny;
+  keepInBounds(you);
+  you.lastRoom = getRoomAt(you.x, you.y);
+
+  // Doing task progress
+  if (doingTask){
+    const { task, d2 } = nearestMyTask();
+    if (!task || d2 > wX(40)*wX(40)){
+      doingTask = false;
+      taskProgress = 0;
+      setStatus('Task cancelled');
+    } else {
+      taskProgress += dt / 1.5; // 1.5 seconds per task
+      if (taskProgress >= 1){
+        task.done = true;
+        tasksDone++;
+        doingTask = false;
+        taskProgress = 0;
+        setStatus('Task complete!');
+        updateHUD();
+        if (tasksDone >= 3){
+          end('You Win!', `You finished all tasks and survived. Nice teamwork!`);
+          return;
+        }
+      }
+    }
+  }
+
+  // AI movement
+  for (const p of crew){
+    if (!p.alive) continue;
+    if (p.id === you.id) continue;
+
+    if (!p.target || dist2(p.x,p.y,p.target.x,p.target.y) < wX(18)*wX(18)){
+      pickTarget(p);
+    }
+    moveTowards(p, p.target.x, p.target.y, dt);
+    p.lastRoom = getRoomAt(p.x, p.y);
+  }
+
+  // Impostor tends to drift toward populated rooms, then hunt
+  if (impostor.alive){
+    if (!impostor.target || Math.random() < 0.01){
+      // pick target near a random crewmate
+      const alive = crew.filter(p => p.alive && p.id !== impostor.id);
+      const target = alive[Math.floor(rand(0, alive.length))];
+      if (target){
+        impostor.target = { x: target.x + rand(-wX(50), wX(50)), y: target.y + rand(-wX(50), wX(50)), room: target.lastRoom };
+      }
+    }
+    if (impostor.target) moveTowards(impostor, impostor.target.x, impostor.target.y, dt);
+    impostor.lastRoom = getRoomAt(impostor.x, impostor.y);
+    impostorTryKill(dt);
+  }
+
+  // Lose condition: impostor alive and ALL crewmates are dead and you didn't finish tasks.
+  // (You can still finish tasks as a ghost to win.)
+  const aliveCrewmates = crew.filter(p => p.alive && p.role !== 'impostor');
+  if (impostor.alive && aliveCrewmates.length === 0 && tasksDone < 3){
+    end('You Lost!', `The impostor outlasted the crew.`);
+    return;
+  }
+}
+
+function frame(t){
+  requestAnimationFrame(frame);
+  if (!running){ draw(); return; }
+  if (paused || gameOver){ draw(); updateHUD(); return; }
+  if (!lastT) lastT = t;
+  const dt = Math.min(0.033, (t - lastT) / 1000);
+  lastT = t;
+  update(dt);
+  draw();
+  updateHUD();
+}
+requestAnimationFrame(frame);
+
+</script>
+</body>
+</html>
+
+

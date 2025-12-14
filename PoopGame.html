@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Poop Panic! (Kid-Friendly Poop Game)</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:rgba(255,255,255,0.08);
+      --border:rgba(255,255,255,0.14);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.75);
+      --accent:#22ffb6;
+      --danger:#ff4d6d;
+      --gold:#ffd84d;
+      --poop:#7a4a1a;
+      --poop2:#a76a2a;
+      --toilet:#dbe7ff;
+      --water:#5bf7ff;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:
+        radial-gradient(1000px 800px at 50% 25%, rgba(91,247,255,0.14) 0%, rgba(11,18,32,0) 55%),
+        radial-gradient(900px 700px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(11,18,32,0) 60%),
+        var(--bg);
+      color:var(--text);
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      overflow:hidden;
+      touch-action:none;
+    }
+    .wrap{
+      width:min(1040px, 96vw);
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
+    .card{
+      position:relative;
+      border-radius:16px;
+      background:linear-gradient(180deg, var(--panel), rgba(255,255,255,0.03));
+      border:1px solid var(--border);
+      box-shadow:0 24px 80px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      background:linear-gradient(180deg, #162a4d 0%, #0b1220 70%, #080c16 100%);
+      touch-action:none;
+    }
+    .side{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .hud{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:900;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      min-width:140px;
+      text-align:center;
+      font-weight:900;
+    }
+    .help{
+      font-size:13px;
+      line-height:1.4;
+      color:var(--muted);
+    }
+    .btnRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    button{
+      border:0;
+      border-radius:14px;
+      padding:12px 12px;
+      cursor:pointer;
+      font: inherit;
+      font-weight:900;
+      color:#071019;
+      background:linear-gradient(45deg, var(--accent), #5bf7ff);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      transition: transform .08s ease;
+      user-select:none;
+    }
+    button:active{transform:scale(0.98)}
+    button.secondary{background:linear-gradient(45deg, var(--gold), #ffae4d)}
+    button.danger{background:linear-gradient(45deg, var(--danger), #ffae4d)}
+
+    .controls{
+      display:none;
+      gap:10px;
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    .controls button{
+      padding:14px 10px;
+      border-radius:14px;
+      font-size:18px;
+    }
+    @media (max-width: 980px){
+      .controls{display:grid}
+    }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.82);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+    }
+    .overlay.hidden{display:none}
+    .panel{
+      width:min(620px, 92%);
+      background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(0,0,0,0.55));
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 30px 110px rgba(0,0,0,0.55);
+      text-align:center;
+    }
+    .panel h1{
+      margin:0 0 8px 0;
+      font-size:34px;
+      letter-spacing:0.6px;
+      color:#eaffff;
+      text-shadow:0 0 18px rgba(91,247,255,0.24);
+    }
+    .panel p{ margin: 8px 0 14px 0; font-size:14px; color:var(--muted); }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.35);
+      font-weight:900;
+      margin:0 2px;
+      color:var(--text);
+    }
+  </style>
+ </head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="game" width="900" height="600"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1 id="ovTitle">Poop Panic!</h1>
+          <p id="ovText">Catch the poop blobs. Avoid the stink clouds. Collect toilet paper for power-ups!</p>
+          <p>
+            Controls: <span class="kbd">←</span><span class="kbd">→</span> or <span class="kbd">A</span><span class="kbd">D</span>.
+            Power flush: <span class="kbd">Space</span>.
+          </p>
+          <div class="btnRow" style="margin-top:10px">
+            <button id="btnPlay">PLAY</button>
+            <button class="secondary" id="btnHow">HOW?</button>
+          </div>
+          <p class="help" id="how" style="display:none;margin-top:10px">
+            - Move the toilet to catch falling poop blobs (+10).<br/>
+            - Dodge stink clouds (-1 heart).<br/>
+            - Catch toilet paper (+1 flush charge). Press Space to flush and clear hazards!
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card side">
+      <div class="hud">
+        <div class="row"><span>Score</span><span class="pill" id="score">0</span></div>
+        <div class="row"><span>Hearts</span><span class="pill" id="hearts">3</span></div>
+        <div class="row"><span>Flush</span><span class="pill" id="flush">0</span></div>
+        <div class="row"><span>Level</span><span class="pill" id="level">1</span></div>
+        <div class="row"><span>Time</span><span class="pill" id="time">0:00</span></div>
+        <div class="btnRow">
+          <button class="secondary" id="btnPause">Pause</button>
+          <button class="danger" id="btnRestart">Restart</button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="btnLeft">←</button>
+        <button id="btnFlush" class="secondary">FLUSH</button>
+        <button id="btnRight">→</button>
+      </div>
+
+      <div class="help">
+        Kid-friendly silly game. No gross stuff—just goofy blobs and stink clouds.
+      </div>
+    </div>
+  </div>
+
+<script>
+  // -----------------------------
+  // Poop Panic! — single file
+  // -----------------------------
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  const scoreEl = document.getElementById('score');
+  const heartsEl = document.getElementById('hearts');
+  const flushEl = document.getElementById('flush');
+  const levelEl = document.getElementById('level');
+  const timeEl = document.getElementById('time');
+
+  const overlay = document.getElementById('overlay');
+  const ovTitle = document.getElementById('ovTitle');
+  const ovText = document.getElementById('ovText');
+  const btnPlay = document.getElementById('btnPlay');
+  const btnHow = document.getElementById('btnHow');
+  const how = document.getElementById('how');
+  const btnPause = document.getElementById('btnPause');
+  const btnRestart = document.getElementById('btnRestart');
+
+  const btnLeft = document.getElementById('btnLeft');
+  const btnRight = document.getElementById('btnRight');
+  const btnFlush = document.getElementById('btnFlush');
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const rand = (a,b) => a + Math.random()*(b-a);
+  const now = () => performance.now();
+  const fmtTime = (ms) => {
+    const s = Math.floor(ms/1000);
+    const m = Math.floor(s/60);
+    const ss = String(s%60).padStart(2,'0');
+    return `${m}:${ss}`;
+  };
+
+  function resize(){
+    const maxW = Math.min(900, Math.floor(window.innerWidth * 0.96));
+    const maxH = Math.min(600, Math.floor(window.innerHeight * 0.86));
+    let w = maxW;
+    let h = Math.floor(w * 2/3);
+    if (h > maxH){ h = maxH; w = Math.floor(h * 3/2); }
+    canvas.width = Math.max(420, w);
+    canvas.height = Math.max(280, h);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // -----------------------------
+  // Game state
+  // -----------------------------
+  let running = false;
+  let paused = false;
+  let gameOver = false;
+
+  let score = 0;
+  let hearts = 3;
+  let flush = 0;
+  let level = 1;
+  let startTime = 0;
+
+  let shake = 0;
+  let lastT = 0;
+
+  const keys = new Set();
+  document.addEventListener('keydown', (e) => {
+    if (e.key === ' ') e.preventDefault();
+    keys.add(e.key);
+    if (!running || paused || gameOver) return;
+    if (e.key === ' ') doFlush();
+  });
+  document.addEventListener('keyup', (e) => keys.delete(e.key));
+
+  // Touch/Mouse holding for buttons
+  const hold = { left:false, right:false };
+  function bindHold(el, which){
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); hold[which] = true; });
+    window.addEventListener('pointerup', () => { hold[which] = false; });
+    el.addEventListener('pointerleave', () => { hold[which] = false; });
+  }
+  bindHold(btnLeft, 'left');
+  bindHold(btnRight, 'right');
+  btnFlush.addEventListener('click', () => doFlush());
+
+  // Player (happy toilet)
+  const player = {
+    x: 0, y: 0,
+    w: 90, h: 92,
+    vx: 0,
+    maxSpeed: 740
+  };
+
+  const poopBlobs = [];
+  const stinkClouds = [];
+  const tpRolls = [];
+  const particles = [];
+
+  // Spawning timers
+  let poopTimer = 0;
+  let stinkTimer = 0;
+  let tpTimer = 0;
+
+  function resetGame(){
+    score = 0;
+    hearts = 3;
+    flush = 0;
+    level = 1;
+    shake = 0;
+    startTime = now();
+    lastT = 0;
+
+    poopBlobs.length = 0;
+    stinkClouds.length = 0;
+    tpRolls.length = 0;
+    particles.length = 0;
+
+    player.x = canvas.width * 0.5;
+    player.y = canvas.height - 70;
+    player.vx = 0;
+
+    poopTimer = 0.3;
+    stinkTimer = 1.2;
+    tpTimer = 3.2;
+
+    paused = false;
+    gameOver = false;
+    btnPause.textContent = 'Pause';
+    updateHud();
+  }
+
+  function start(){
+    resetGame();
+    running = true;
+    overlay.classList.add('hidden');
+  }
+
+  function end(){
+    gameOver = true;
+    paused = false;
+    ovTitle.textContent = 'TOO STINKY!';
+    ovText.innerHTML = `Final score: <b>${score}</b><br/>Try again and flush the chaos!`;
+    btnPlay.textContent = 'Play Again';
+    overlay.classList.remove('hidden');
+  }
+
+  function updateHud(){
+    scoreEl.textContent = String(score);
+    heartsEl.textContent = String(hearts);
+    flushEl.textContent = String(flush);
+    levelEl.textContent = String(level);
+    timeEl.textContent = fmtTime(now() - startTime);
+  }
+
+  btnPlay.addEventListener('click', start);
+  btnHow.addEventListener('click', () => how.style.display = (how.style.display === 'none') ? 'block' : 'none');
+  btnRestart.addEventListener('click', () => { if (running) start(); });
+  btnPause.addEventListener('click', () => {
+    if (!running || gameOver) return;
+    paused = !paused;
+    btnPause.textContent = paused ? 'Resume' : 'Pause';
+  });
+
+  // -----------------------------
+  // Entities
+  // -----------------------------
+  function spawnPoop(){
+    poopBlobs.push({
+      x: rand(30, canvas.width - 30),
+      y: -20,
+      r: rand(14, 22),
+      vy: rand(140, 220) + level * 16,
+      spin: rand(-2, 2),
+      t: rand(0, Math.PI*2)
+    });
+  }
+
+  function spawnStink(){
+    stinkClouds.push({
+      x: rand(30, canvas.width - 30),
+      y: -30,
+      r: rand(18, 30),
+      vy: rand(120, 190) + level * 14,
+      drift: rand(-60, 60),
+      t: rand(0, Math.PI*2)
+    });
+  }
+
+  function spawnTP(){
+    tpRolls.push({
+      x: rand(30, canvas.width - 30),
+      y: -30,
+      r: 18,
+      vy: rand(110, 170) + level * 10,
+      t: rand(0, Math.PI*2)
+    });
+  }
+
+  function burst(x,y, col, n=18){
+    for (let i=0;i<n;i++){
+      particles.push({
+        x,y,
+        vx: rand(-260, 260),
+        vy: rand(-300, 100),
+        life: rand(0.35, 0.9),
+        r: rand(2, 5),
+        col
+      });
+    }
+  }
+
+  function doFlush(){
+    if (!running || paused || gameOver) return;
+    if (flush <= 0) return;
+    flush--;
+    // Clear hazards and give a little score
+    const cleared = stinkClouds.length;
+    if (cleared > 0){
+      score += cleared * 8;
+      burst(player.x, player.y - 40, '#5bf7ff', 30);
+      shake = Math.max(shake, 10);
+    }
+    stinkClouds.length = 0;
+    updateHud();
+  }
+
+  function hitPlayer(){
+    hearts--;
+    shake = Math.max(shake, 14);
+    burst(player.x, player.y - 30, '#ff4d6d', 26);
+    updateHud();
+    if (hearts <= 0) end();
+  }
+
+  function circleHit(ax,ay,ar, bx,by,br){
+    const dx = ax - bx, dy = ay - by;
+    return dx*dx + dy*dy <= (ar+br)*(ar+br);
+  }
+
+  // -----------------------------
+  // Draw helpers
+  // -----------------------------
+  function roundRectFill(x,y,w,h,r, fill){
+    ctx.fillStyle = fill;
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.lineTo(x + w - rr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+    ctx.lineTo(x + w, y + h - rr);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+    ctx.lineTo(x + rr, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+    ctx.lineTo(x, y + rr);
+    ctx.quadraticCurveTo(x, y, x + rr, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawToilet(){
+    const x = player.x - player.w/2;
+    const y = player.y - player.h/2;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(player.x, player.y + 40, player.w*0.42, player.h*0.10, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Tank
+    roundRectFill(x + 16, y + 6, player.w - 32, 28, 10, '#e9f1ff');
+    // Bowl outer
+    roundRectFill(x + 10, y + 28, player.w - 20, 56, 18, '#dbe7ff');
+    // Seat
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.ellipse(player.x, y + 58, player.w*0.26, player.h*0.18, 0, 0, Math.PI*2);
+    ctx.stroke();
+    // Water
+    ctx.fillStyle = '#5bf7ff';
+    ctx.globalAlpha = 0.65;
+    ctx.beginPath();
+    ctx.ellipse(player.x, y + 60, player.w*0.22, player.h*0.14, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Face (cute)
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.beginPath();
+    ctx.arc(player.x - 10, y + 44, 3, 0, Math.PI*2);
+    ctx.arc(player.x + 10, y + 44, 3, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(player.x, y + 52, 10, 0, Math.PI);
+    ctx.stroke();
+  }
+
+  function drawPoop(p){
+    // Poop blob as stacked swirls (no emoji needed)
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(Math.sin(p.t) * 0.15);
+    ctx.shadowColor = 'rgba(0,0,0,0.35)';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#7a4a1a';
+    ctx.beginPath();
+    ctx.arc(0, 0, p.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#a76a2a';
+    ctx.beginPath();
+    ctx.arc(-p.r*0.2, -p.r*0.2, p.r*0.6, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.30)';
+    ctx.beginPath();
+    ctx.arc(-p.r*0.35, -p.r*0.35, p.r*0.18, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawStink(s){
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    const pulse = 1 + Math.sin(s.t*3) * 0.08;
+    ctx.shadowColor = '#ff4d6d';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = 'rgba(255,77,109,0.22)';
+    ctx.beginPath();
+    ctx.arc(0, 0, s.r * pulse, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.20)';
+    ctx.beginPath();
+    ctx.arc(-s.r*0.25, -s.r*0.25, s.r*0.22, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawTP(t){
+    ctx.save();
+    ctx.translate(t.x, t.y);
+    ctx.rotate(Math.sin(t.t) * 0.18);
+    ctx.shadowColor = '#ffd84d';
+    ctx.shadowBlur = 12;
+    roundRectFill(-18, -14, 36, 28, 10, '#f2f6ff');
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(0,0,0,0.10)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 8, 7, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // -----------------------------
+  // Main loop
+  // -----------------------------
+  function update(dt){
+    // Level increases over time
+    const elapsed = now() - startTime;
+    level = 1 + Math.floor(elapsed / 20000);
+    levelEl.textContent = String(level);
+    timeEl.textContent = fmtTime(elapsed);
+
+    // Input
+    const left = keys.has('ArrowLeft') || keys.has('a') || keys.has('A') || hold.left;
+    const right = keys.has('ArrowRight') || keys.has('d') || keys.has('D') || hold.right;
+    const dir = (left ? -1 : 0) + (right ? 1 : 0);
+
+    // Move
+    const accel = 2200;
+    player.vx += dir * accel * dt;
+    // Damping
+    player.vx *= Math.pow(0.85, dt*60);
+    player.vx = clamp(player.vx, -player.maxSpeed, player.maxSpeed);
+    player.x += player.vx * dt;
+    player.x = clamp(player.x, player.w/2 + 8, canvas.width - player.w/2 - 8);
+
+    // Spawn
+    poopTimer -= dt;
+    stinkTimer -= dt;
+    tpTimer -= dt;
+    const poopRate = clamp(0.55 - level*0.03, 0.22, 0.55);
+    const stinkRate = clamp(1.30 - level*0.04, 0.55, 1.30);
+    const tpRate = clamp(4.2 - level*0.08, 2.2, 4.2);
+    if (poopTimer <= 0){ poopTimer = rand(poopRate*0.7, poopRate*1.2); spawnPoop(); }
+    if (stinkTimer <= 0){ stinkTimer = rand(stinkRate*0.8, stinkRate*1.3); spawnStink(); }
+    if (tpTimer <= 0){ tpTimer = rand(tpRate*0.8, tpRate*1.3); spawnTP(); }
+
+    // Update poop
+    for (let i=poopBlobs.length-1;i>=0;i--){
+      const p = poopBlobs[i];
+      p.t += dt * (1 + Math.abs(p.spin));
+      p.y += p.vy * dt;
+      if (circleHit(player.x, player.y - 10, player.w*0.30, p.x, p.y, p.r)){
+        score += 10;
+        scoreEl.textContent = String(score);
+        burst(p.x, p.y, '#22ffb6', 18);
+        poopBlobs.splice(i,1);
+        continue;
+      }
+      if (p.y > canvas.height + 60) poopBlobs.splice(i,1);
+    }
+
+    // Update stink
+    for (let i=stinkClouds.length-1;i>=0;i--){
+      const s = stinkClouds[i];
+      s.t += dt * 2.5;
+      s.y += s.vy * dt;
+      s.x += s.drift * dt;
+      if (circleHit(player.x, player.y - 10, player.w*0.28, s.x, s.y, s.r*0.85)){
+        stinkClouds.splice(i,1);
+        hitPlayer();
+        continue;
+      }
+      if (s.y > canvas.height + 80) stinkClouds.splice(i,1);
+    }
+
+    // Update TP
+    for (let i=tpRolls.length-1;i>=0;i--){
+      const t = tpRolls[i];
+      t.t += dt * 2.2;
+      t.y += t.vy * dt;
+      if (circleHit(player.x, player.y - 10, player.w*0.28, t.x, t.y, t.r)){
+        tpRolls.splice(i,1);
+        flush = clamp(flush + 1, 0, 5);
+        flushEl.textContent = String(flush);
+        score += 5;
+        scoreEl.textContent = String(score);
+        burst(t.x, t.y, '#ffd84d', 16);
+        shake = Math.max(shake, 6);
+        continue;
+      }
+      if (t.y > canvas.height + 80) tpRolls.splice(i,1);
+    }
+
+    // Particles
+    for (let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.life -= dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= Math.pow(0.90, dt*60);
+      p.vy *= Math.pow(0.90, dt*60);
+      if (p.life <= 0) particles.splice(i,1);
+    }
+
+    // Shake decay
+    shake *= Math.pow(0.82, dt*60);
+    if (shake < 0.1) shake = 0;
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // Shake
+    ctx.save();
+    if (shake > 0){
+      const dx = (Math.random() - 0.5) * shake * 2;
+      const dy = (Math.random() - 0.5) * shake * 2;
+      ctx.translate(dx, dy);
+    }
+
+    // Background bubbles
+    ctx.globalAlpha = 0.20;
+    for (let i=0;i<16;i++){
+      const x = (i*77 + (now()*0.02)) % canvas.width;
+      const y = (i*41 + 50) % canvas.height;
+      ctx.fillStyle = '#5bf7ff';
+      ctx.beginPath();
+      ctx.arc(x, y, 2.2, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Floor
+    ctx.fillStyle = 'rgba(0,0,0,0.20)';
+    ctx.fillRect(0, canvas.height - 62, canvas.width, 62);
+
+    // Entities
+    for (const p of poopBlobs) drawPoop(p);
+    for (const s of stinkClouds) drawStink(s);
+    for (const t of tpRolls) drawTP(t);
+
+    // Particles
+    for (const p of particles){
+      ctx.globalAlpha = clamp(p.life / 0.9, 0, 1);
+      ctx.fillStyle = p.col;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Player
+    drawToilet();
+
+    // HUD hint
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    roundRectFill(12, 12, 360, 30, 12, 'rgba(0,0,0,0.28)');
+    ctx.fillStyle = '#eaffff';
+    ctx.font = '900 14px Verdana, "Comic Sans MS", sans-serif';
+    ctx.fillText('Catch poop (+10), TP (+flush), avoid stink (-heart). Space = FLUSH!', 22, 32);
+
+    ctx.restore();
+  }
+
+  function frame(t){
+    requestAnimationFrame(frame);
+    if (!running) { draw(); return; }
+    if (paused || gameOver){ draw(); return; }
+    if (!lastT) lastT = t;
+    const dt = Math.min(0.033, (t - lastT) / 1000);
+    lastT = t;
+    update(dt);
+    draw();
+    updateHud();
+  }
+  requestAnimationFrame(frame);
+
+  // Initial UI
+  updateHud();
+</script>
+</body>
+</html>
+
+
