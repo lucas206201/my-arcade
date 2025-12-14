@@ -51,7 +51,7 @@
       display:block;
       width:100%;
       height:auto;
-      background:linear-gradient(180deg, #1b2a4e 0%, #0b1220 70%, #080c16 100%);
+      background:linear-gradient(180deg, #1b2a4e 0%, #0b1220 70%, #4d8712 100%);
       touch-action:none;
     }
     .side{
@@ -159,7 +159,7 @@
       display:inline-block;
       padding:3px 8px;
       border-radius:999px;
-      border:1px solid rgba(255,255,255,0.14);
+      border:1px solid rgba(42, 190, 25, 0.14);
       background:rgba(0,0,0,0.30);
       font-size:11px;
       font-weight:900;
@@ -172,6 +172,51 @@
       padding:8px 10px;
       border-radius:12px;
       font-weight:900;
+      min-width:92px;
+    }
+    .chat{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+    }
+    .chat h3{
+      margin:0 0 8px 0;
+      font-size:14px;
+      letter-spacing:0.5px;
+      color:#eaffff;
+    }
+    .chatLog{
+      height:170px;
+      overflow:auto;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.22);
+      padding:10px;
+      font-size:13px;
+      line-height:1.35;
+    }
+    .chatLine{ margin:0 0 6px 0; word-break:break-word; }
+    .chatLine .who{ font-weight:900; color:#eaffff; }
+    .chatLine .you{ color:rgba(255,216,77,0.98); }
+    .chatLine .sys{ color:rgba(34,255,182,0.95); }
+    .chatInputRow{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+    }
+    .chatInput{
+      flex:1;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.35);
+      color:var(--text);
+      padding:10px 12px;
+      font: inherit;
+      font-weight:800;
+      outline:none;
+    }
+    .chatSend{
       min-width:92px;
     }
     .rank{
@@ -296,6 +341,18 @@
         <div id="shopList"></div>
       </div>
 
+      <div class="chat">
+        <h3>Chat</h3>
+        <div class="chatLog" id="chatLog" aria-live="polite"></div>
+        <div class="chatInputRow">
+          <input class="chatInput" id="chatInput" maxlength="80" placeholder="Say something..." />
+          <button class="secondary chatSend" id="chatSend">Send</button>
+        </div>
+        <div class="help" style="margin-top:8px">
+          Local chat (no server). AI messages are simulated.
+        </div>
+      </div>
+
       <div class="help">
         This is a simplified Hole.io-style game (original art & code). No external libraries.
       </div>
@@ -329,6 +386,9 @@ const coinsEl = document.getElementById('coins');
 const timeEl = document.getElementById('time');
 const leaderList = document.getElementById('leaderList');
 const shopList = document.getElementById('shopList');
+const chatLogEl = document.getElementById('chatLog');
+const chatInputEl = document.getElementById('chatInput');
+const chatSendEl = document.getElementById('chatSend');
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const rand = (a,b) => a + Math.random()*(b-a);
@@ -392,6 +452,16 @@ const SKINS = [
   { id:'sunGold', name:'Sun Gold', cost:60, rim:'#ffd84d', glow:'#ffd84d', inner:'rgba(0,0,0,0.78)' },
   { id:'lava', name:'Lava', cost:90, rim:'#ff4d6d', glow:'#ff4d6d', inner:'rgba(0,0,0,0.72)' },
   { id:'galaxy', name:'Galaxy', cost:120, rim:'#be00be', glow:'#5bf7ff', inner:'rgba(0,0,0,0.82)' },
+  // Silly skins
+  { id:'slime', name:'Slime Hole', cost:140, rim:'#2eea74', glow:'#00ff00', inner:'rgba(0,0,0,0.80)', pattern:'slime' },
+  { id:'poopHole', name:'Poop Hole', cost:160, rim:'#7a4a1a', glow:'#a76a2a', inner:'rgba(0,0,0,0.84)', pattern:'poop' },
+  { id:'toiletBowl', name:'Toilet Bowl', cost:180, rim:'#dbe7ff', glow:'#5bf7ff', inner:'rgba(0,0,0,0.82)', pattern:'toilet' },
+  // Animal skins
+  { id:'cat', name:'Cat Hole', cost:200, rim:'#ff9fd6', glow:'#ffd1ea', inner:'rgba(0,0,0,0.82)', pattern:'cat' },
+  { id:'shark', name:'Shark Hole', cost:220, rim:'#5bf7ff', glow:'#00ffff', inner:'rgba(0,0,0,0.85)', pattern:'shark' },
+  { id:'panda', name:'Panda Hole', cost:240, rim:'#ffffff', glow:'#dbe7ff', inner:'rgba(0,0,0,0.86)', pattern:'panda' },
+  { id:'frog', name:'Frog Hole', cost:240, rim:'#2eea74', glow:'#a2ff4d', inner:'rgba(0,0,0,0.84)', pattern:'frog' },
+  { id:'tiger', name:'Tiger Hole', cost:260, rim:'#ff7f00', glow:'#ffd84d', inner:'rgba(0,0,0,0.86)', pattern:'tiger' },
 ];
 
 let coins = Number(localStorage.getItem(LS_COINS) || '0');
@@ -417,6 +487,142 @@ function saveEconomy(){
 
 function skinById(id){
   return SKINS.find(s => s.id === id) || SKINS[0];
+}
+
+// -----------------------------
+// Chat (local + AI chatter)
+// -----------------------------
+let chat = [];
+let nextAIChatAt = 0;
+
+// -----------------------------
+// Sound (Web Audio) — “gulp” SFX
+// -----------------------------
+let audioCtx = null;
+let audioEnabled = false;
+
+function ensureAudio(){
+  // Browsers require a user gesture before sound can play.
+  if (!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended'){
+    audioCtx.resume();
+  }
+  audioEnabled = true;
+}
+
+function playGulp(size = 1){
+  if (!audioCtx || !audioEnabled) return;
+  const t0 = audioCtx.currentTime;
+  const dur = 0.10 + clamp(size, 0.6, 1.6) * 0.05;
+
+  // Main tone: quick downward glide
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sine';
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(0.16, t0 + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+  const fStart = 260 + 180 * clamp(size, 0.6, 1.6);
+  const fEnd = 90 + 40 * clamp(size, 0.6, 1.6);
+  osc.frequency.setValueAtTime(fStart, t0);
+  osc.frequency.exponentialRampToValueAtTime(fEnd, t0 + dur);
+
+  // Tiny noise “pop” for wetness
+  const bufferSize = Math.floor(audioCtx.sampleRate * 0.03);
+  const noiseBuf = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for (let i=0;i<bufferSize;i++){
+    data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+  }
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = noiseBuf;
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.setValueAtTime(0.0001, t0);
+  noiseGain.gain.exponentialRampToValueAtTime(0.09, t0 + 0.005);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.03);
+
+  // Master limiter-ish
+  const master = audioCtx.createGain();
+  master.gain.setValueAtTime(0.9, t0);
+
+  osc.connect(gain).connect(master).connect(audioCtx.destination);
+  noise.connect(noiseGain).connect(master);
+
+  osc.start(t0);
+  osc.stop(t0 + dur);
+  noise.start(t0);
+  noise.stop(t0 + 0.035);
+}
+
+function addChat(who, text, kind = 'normal'){
+  // kind: normal | you | sys
+  chat.push({ who, text, kind, t: now() });
+  if (chat.length > 80) chat.shift();
+  renderChat();
+}
+
+function renderChat(){
+  chatLogEl.innerHTML = '';
+  for (const m of chat){
+    const div = document.createElement('div');
+    div.className = 'chatLine';
+    const whoSpan = document.createElement('span');
+    whoSpan.className = 'who' + (m.kind === 'you' ? ' you' : m.kind === 'sys' ? ' sys' : '');
+    whoSpan.textContent = m.kind === 'sys' ? 'SYSTEM' : m.who;
+    const textSpan = document.createElement('span');
+    textSpan.textContent = `: ${m.text}`;
+    div.appendChild(whoSpan);
+    div.appendChild(textSpan);
+    chatLogEl.appendChild(div);
+  }
+  chatLogEl.scrollTop = chatLogEl.scrollHeight;
+}
+
+function sendChat(){
+  const raw = (chatInputEl.value || '').trim();
+  if (!raw) return;
+  chatInputEl.value = '';
+  addChat(playerName, raw, 'you');
+}
+
+chatSendEl.addEventListener('click', sendChat);
+chatInputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){
+    e.preventDefault();
+    sendChat();
+  }
+});
+
+function scheduleAIChat(){
+  nextAIChatAt = now() + rand(2500, 5200);
+}
+
+function aiChatTick(){
+  if (!running || paused || gameOver) return;
+  if (now() < nextAIChatAt) return;
+
+  const aliveAI = holes.filter(h => h.alive && !h.isYou);
+  if (aliveAI.length === 0) return;
+  const speaker = aliveAI[Math.floor(rand(0, aliveAI.length))];
+  const you = getYou();
+  const youScore = Math.floor(you?.score ?? 0);
+
+  const lines = [
+    `I will be the biggest hole!`,
+    `nom nom nom`,
+    `watch out!`,
+    `I'm hunting cars.`,
+    `I'm going downtown.`,
+    `brb eating a house`,
+    `who bumped me??`,
+    `GG?`,
+    `Your score is ${youScore}!`,
+  ];
+  addChat(speaker.name, lines[Math.floor(rand(0, lines.length))], 'normal');
+  scheduleAIChat();
 }
 
 function renderShopInto(container){
@@ -653,12 +859,18 @@ function resetGame(){
   updateHUD();
   updateLeaderboard();
   renderShop();
+
+  // Chat reset
+  chat = [];
+  addChat('SYSTEM', 'Welcome! Eat small things to grow. Good luck!', 'sys');
+  scheduleAIChat();
 }
 
 function start(){
   resetGame();
   running = true;
   overlay.classList.add('hidden');
+  ensureAudio();
 }
 
 function endRound(){
@@ -682,6 +894,8 @@ function endRound(){
   ovText.innerHTML = `Winner: <b>${winner?.name ?? '???'}</b><br/>Your place: <b>#${place}</b><br/>Your score: <b>${yourScore}</b><br/><br/>You earned <b>${earned} coins</b>!`;
   btnPlay.textContent = 'Play Again';
   overlay.classList.remove('hidden');
+
+  addChat('SYSTEM', `Round over! You earned ${earned} coins.`, 'sys');
 }
 
 btnPlay.addEventListener('click', start);
@@ -866,6 +1080,7 @@ function update(dt){
         h.score += gain;
         growHole(h, f.r);
         burst(f.x, f.y, f.col, 10);
+        if (h.isYou) playGulp(clamp(f.r / 10, 0.7, 1.3));
       }
     }
     // Props
@@ -879,6 +1094,7 @@ function update(dt){
         h.score += gain;
         growHole(h, p.r);
         burst(p.x, p.y, '#ffd84d', 18);
+        if (h.isYou) playGulp(clamp(p.r / 40, 0.9, 1.6));
       }
     }
   }
@@ -898,6 +1114,11 @@ function update(dt){
         a.score += Math.floor(b.score * 0.25) + gainFromRadius(b.r) * 8;
         growHole(a, b.r * 1.1);
         burst(b.x, b.y, b.color, 30);
+        if (a.isYou) playGulp(clamp(b.r / 24, 1.1, 1.8));
+
+        if (a.isYou) addChat('SYSTEM', `You swallowed ${b.name}!`, 'sys');
+        else if (b.isYou) addChat('SYSTEM', `Oh no! ${a.name} swallowed you!`, 'sys');
+        else if (Math.random() < 0.22) addChat(a.name, `I ate ${b.name}!`, 'normal');
       }
     }
   }
@@ -913,6 +1134,7 @@ function update(dt){
     if (p.life <= 0) particles.splice(i,1);
   }
 
+  aiChatTick();
   updateHUD();
   updateLeaderboard();
 }
@@ -1028,6 +1250,7 @@ function drawHole(h){
   const rim = skin ? skin.rim : h.color;
   const glow = skin ? skin.glow : h.color;
   const inner = skin ? skin.inner : 'rgba(0,0,0,0.75)';
+  const pattern = skin ? skin.pattern : null;
 
   // Rim glow
   ctx.shadowColor = glow;
@@ -1055,6 +1278,169 @@ function drawHole(h){
   ctx.beginPath();
   ctx.arc(0, 0, h.r*0.92, 0, Math.PI*2);
   ctx.fill();
+
+  // Fun skin patterns (only for your selected skins)
+  if (pattern === 'poop'){
+    // Brown “chunks” around rim + little green stink waves
+    const t = now() * 0.002;
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = '#a76a2a';
+    for (let i=0;i<8;i++){
+      const a = (i/8) * Math.PI*2 + Math.sin(t + i) * 0.10;
+      const rr = h.r * 0.86;
+      ctx.beginPath();
+      ctx.arc(Math.cos(a)*rr, Math.sin(a)*rr, Math.max(2, h.r*0.08), 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = '#4d8712';
+    ctx.lineWidth = Math.max(1, h.r*0.06);
+    for (let k=0;k<2;k++){
+      const a = t*0.8 + k*2.4;
+      ctx.beginPath();
+      ctx.arc(Math.cos(a)*h.r*0.35, Math.sin(a)*h.r*0.25, h.r*0.22, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  } else if (pattern === 'slime'){
+    // Drippy neon slime inside the rim
+    const t = now() * 0.003;
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#2eea74';
+    for (let i=0;i<6;i++){
+      const a = (i/6) * Math.PI*2 + t*0.4;
+      const dropX = Math.cos(a) * h.r * 0.60;
+      const dropY = Math.sin(a) * h.r * 0.60;
+      const rr = h.r * (0.10 + 0.03*Math.sin(t+i));
+      ctx.beginPath();
+      ctx.ellipse(dropX, dropY, rr, rr*1.35, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else if (pattern === 'toilet'){
+    // Light-blue “water swirl”
+    const t = now() * 0.0022;
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = '#5bf7ff';
+    ctx.lineWidth = Math.max(2, h.r*0.08);
+    ctx.beginPath();
+    ctx.arc(0, 0, h.r*0.58, t, t + Math.PI*1.2);
+    ctx.stroke();
+    ctx.globalAlpha = 0.25;
+    ctx.beginPath();
+    ctx.arc(0, 0, h.r*0.42, -t*1.1, -t*1.1 + Math.PI*1.4);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  } else if (pattern === 'cat'){
+    // Cute cat ears + whiskers
+    const ear = h.r * 0.32;
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = rim;
+    // ears
+    ctx.beginPath();
+    ctx.moveTo(-h.r*0.55, -h.r*0.85);
+    ctx.lineTo(-h.r*0.15, -h.r*0.60);
+    ctx.lineTo(-h.r*0.45, -h.r*0.45);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(h.r*0.55, -h.r*0.85);
+    ctx.lineTo(h.r*0.15, -h.r*0.60);
+    ctx.lineTo(h.r*0.45, -h.r*0.45);
+    ctx.closePath();
+    ctx.fill();
+    // whiskers
+    ctx.globalAlpha = 0.45;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1, h.r*0.05);
+    for (let k=0;k<3;k++){
+      const yy = -h.r*0.05 + k*h.r*0.12;
+      ctx.beginPath();
+      ctx.moveTo(-h.r*0.20, yy);
+      ctx.lineTo(-h.r*0.80, yy - h.r*0.05);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(h.r*0.20, yy);
+      ctx.lineTo(h.r*0.80, yy - h.r*0.05);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  } else if (pattern === 'shark'){
+    // Teeth ring
+    const t = now()*0.004;
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = '#ffffff';
+    const teeth = 14;
+    for (let i=0;i<teeth;i++){
+      const a = (i/teeth) * Math.PI*2 + Math.sin(t)*0.06;
+      const rr = h.r * 0.95;
+      const x = Math.cos(a)*rr;
+      const y = Math.sin(a)*rr;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(a + 0.18)*h.r*0.12, y + Math.sin(a + 0.18)*h.r*0.12);
+      ctx.lineTo(x + Math.cos(a - 0.18)*h.r*0.12, y + Math.sin(a - 0.18)*h.r*0.12);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else if (pattern === 'panda'){
+    // Panda ear bumps + eye patches
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = '#111827';
+    ctx.beginPath();
+    ctx.arc(-h.r*0.55, -h.r*0.75, h.r*0.18, 0, Math.PI*2);
+    ctx.arc(h.r*0.55, -h.r*0.75, h.r*0.18, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#111827';
+    ctx.beginPath();
+    ctx.ellipse(-h.r*0.30, -h.r*0.10, h.r*0.18, h.r*0.12, -0.4, 0, Math.PI*2);
+    ctx.ellipse(h.r*0.30, -h.r*0.10, h.r*0.18, h.r*0.12, 0.4, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  } else if (pattern === 'frog'){
+    // Frog eyes on top + little bubbles
+    const t = now()*0.004;
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#2eea74';
+    ctx.beginPath();
+    ctx.arc(-h.r*0.38, -h.r*0.75, h.r*0.20, 0, Math.PI*2);
+    ctx.arc(h.r*0.38, -h.r*0.75, h.r*0.20, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#111827';
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    ctx.arc(-h.r*0.38, -h.r*0.75, h.r*0.08, 0, Math.PI*2);
+    ctx.arc(h.r*0.38, -h.r*0.75, h.r*0.08, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#a2ff4d';
+    for (let i=0;i<4;i++){
+      const a = t + i*1.6;
+      ctx.beginPath();
+      ctx.arc(Math.cos(a)*h.r*0.35, Math.sin(a)*h.r*0.25, h.r*0.06, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else if (pattern === 'tiger'){
+    // Orange stripes around the rim
+    const t = now()*0.0025;
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = '#111827';
+    ctx.lineWidth = Math.max(2, h.r*0.08);
+    const stripes = 8;
+    for (let i=0;i<stripes;i++){
+      const a = (i/stripes) * Math.PI*2 + t;
+      const r0 = h.r*0.72;
+      const r1 = h.r*0.98;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*r0, Math.sin(a)*r0);
+      ctx.lineTo(Math.cos(a)*r1, Math.sin(a)*r1);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
 
   // Name
   ctx.fillStyle = 'rgba(255,255,255,0.92)';
@@ -1132,6 +1518,7 @@ requestAnimationFrame(frame);
 // Initial UI
 renderShop();
 updateHUD();
+addChat('SYSTEM', 'Click PLAY to start. Visit SHOP to buy skins.', 'sys');
 
 </script>
 </body>
