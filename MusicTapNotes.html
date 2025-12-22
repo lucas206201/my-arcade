@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Music Tap Notes (iPad Only)</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.10);
+      --panel2:rgba(255,255,255,0.06);
+      --border:rgba(255,255,255,0.16);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.78);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+      --shadow: rgba(0,0,0,0.45);
+    }
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      background:
+        radial-gradient(1000px 700px at 50% 20%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 55%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 20% 85%, rgba(255,77,109,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      overflow:hidden;
+      touch-action: none;
+      -webkit-user-select:none;
+      user-select:none;
+    }
+
+    .wrap{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+    }
+
+    .card{
+      width:min(980px, 96vw);
+      height:min(680px, 92vh);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: 0 24px 80px var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+
+    canvas{
+      width:100%;
+      height:100%;
+      display:block;
+      background:transparent;
+    }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background: radial-gradient(900px 500px at 50% 25%, rgba(91,247,255,0.12), rgba(0,0,0,0.70));
+    }
+    .overlay.hidden{ display:none; }
+
+    .panel{
+      width:min(560px, 92vw);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+      box-shadow: 0 24px 80px rgba(0,0,0,0.50);
+      padding:14px 14px 12px;
+      text-align:left;
+    }
+    h1{
+      margin:0 0 8px 0;
+      font-size:26px;
+      letter-spacing:0.3px;
+      text-shadow: 0 0 18px rgba(34,255,182,0.25);
+    }
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-weight:800;
+      font-size:13px;
+      line-height:1.45;
+    }
+    .row{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.30);
+      color:var(--text);
+      font-weight:900;
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+    }
+    button.primary{
+      background:linear-gradient(180deg, rgba(34,255,182,0.22), rgba(34,255,182,0.10));
+      border-color: rgba(34,255,182,0.35);
+      box-shadow: 0 0 24px rgba(34,255,182,0.18);
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.28);
+      color:var(--text);
+      font-weight:900;
+      font-size:12px;
+    }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border:1px solid rgba(255,255,255,0.18);
+      border-bottom-color: rgba(255,255,255,0.30);
+      border-radius:8px;
+      background: rgba(0,0,0,0.28);
+      font-weight:1000;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1>Music Tap Notes</h1>
+          <p class="sub" id="deviceMsg">iPad-only rhythm game. Tap the lanes when notes hit the line.</p>
+          <div class="row">
+            <span class="pill">Mode: <b>4 lanes</b></span>
+            <span class="pill">Goal: <b>Build combo</b></span>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="primary" id="btnStart">Tap to Start</button>
+            <button id="btnHow">How to Play</button>
+          </div>
+          <p class="sub" style="margin-top:10px">
+            - Tap anywhere in a lane to hit the note.<br/>
+            - Perfect / Great / Good windows. Miss breaks combo.<br/>
+            - Audio starts after you tap Start (iPad Safari rule).
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const btnStart = document.getElementById('btnStart');
+  const btnHow = document.getElementById('btnHow');
+  const deviceMsg = document.getElementById('deviceMsg');
+
+  // iPad detection (supports iPadOS 13+ reporting as Mac)
+  const ua = navigator.userAgent || '';
+  const isIPad = /iPad/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+  if (!isIPad){
+    deviceMsg.innerHTML = '<b style="color: var(--danger)">This game is iPad-only.</b><br/>Open it on an iPad to play.';
+    btnStart.disabled = true;
+    btnStart.textContent = 'iPad Only';
+  }
+
+  // Resize
+  function resize(){
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const r = canvas.getBoundingClientRect();
+    canvas.width = Math.floor(r.width * dpr);
+    canvas.height = Math.floor(r.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize);
+  // Force layout before first resize
+  requestAnimationFrame(() => resize());
+
+  // Simple rhythm chart
+  // We schedule in "beats" at BPM, then spawn notes with lead time.
+  const BPM = 120;
+  const beatSec = 60 / BPM;
+  const songBeats = 64; // ~32s
+
+  // Timing windows (seconds from hit time)
+  const WIN_PERF = 0.055;
+  const WIN_GREAT = 0.090;
+  const WIN_GOOD = 0.135;
+  const WIN_MISS = 0.170;
+
+  // Visual timing
+  const leadSec = 1.35; // how long notes take to travel to the hit line
+
+  // Lanes
+  const LANES = 4;
+  const laneNames = ['Left', 'Mid-L', 'Mid-R', 'Right'];
+  function laneRect(i, W, H){
+    const pad = Math.max(12, Math.min(22, W*0.03));
+    const playW = W - pad*2;
+    const laneW = playW / LANES;
+    const x = pad + i*laneW;
+    return { x, y: 0, w: laneW, h: H };
+  }
+
+  const state = {
+    running: false,
+    startedAt: 0,
+    t: 0,
+    score: 0,
+    combo: 0,
+    maxCombo: 0,
+    hit: 0,
+    miss: 0,
+    judgeText: '',
+    judgeT: 0,
+  };
+
+  // Notes: {lane, hitTime, hit:false, done:false}
+  const notes = [];
+
+  function buildChart(){
+    notes.length = 0;
+    // Deterministic pattern: kick/snare like
+    // Beat indices 0..songBeats-1
+    for (let b=0;b<songBeats;b++){
+      // Every beat: alternating lanes
+      const lane = (b % 2 === 0) ? 0 : 3;
+      notes.push({ lane, hitTime: b*beatSec, hit:false, done:false });
+      // Every 2 beats: add a middle note (syncopation)
+      if (b % 2 === 1){
+        const l2 = (b % 4 === 1) ? 1 : 2;
+        notes.push({ lane: l2, hitTime: (b + 0.5)*beatSec, hit:false, done:false });
+      }
+      // Little fills near the end
+      if (b >= songBeats - 8 && b % 1 === 0){
+        const l3 = (b % 4);
+        notes.push({ lane: l3, hitTime: (b + 0.25)*beatSec, hit:false, done:false });
+      }
+    }
+    notes.sort((a,b) => a.hitTime - b.hitTime);
+  }
+
+  // Audio (simple synth)
+  let audio = null;
+  let master = null;
+  let musicStartAt = 0;
+
+  function initAudio(){
+    if (audio) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audio = new AC();
+    master = audio.createGain();
+    master.gain.value = 0.28;
+    master.connect(audio.destination);
+  }
+
+  function toneAt(time, freq, dur, type, gain){
+    const o = audio.createOscillator();
+    const g = audio.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, time);
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gain || 0.25), time + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + Math.max(0.02, dur));
+    o.connect(g);
+    g.connect(master);
+    o.start(time);
+    o.stop(time + dur + 0.05);
+  }
+
+  function scheduleMusic(){
+    // A tiny looped chord progression across 16 beats
+    const prog = [
+      [261.63, 329.63, 392.00], // C major
+      [293.66, 369.99, 440.00], // Dm-ish
+      [329.63, 392.00, 493.88], // Em-ish
+      [349.23, 440.00, 523.25], // F-ish
+    ];
+    const total = songBeats;
+    for (let b=0;b<total;b++){
+      const t0 = musicStartAt + b*beatSec;
+      const chord = prog[Math.floor(b/4) % prog.length];
+      // hi hat
+      toneAt(t0, 8000, 0.03, 'square', 0.10);
+      // kick on downbeats
+      if (b % 2 === 0) toneAt(t0, 90, 0.10, 'sine', 0.30);
+      // snare-ish
+      if (b % 2 === 1) toneAt(t0, 220, 0.06, 'triangle', 0.18);
+      // chord stab every beat (soft)
+      for (const f of chord){
+        toneAt(t0 + 0.02, f, 0.14, 'sine', 0.06);
+      }
+    }
+  }
+
+  function sfxHit(kind){
+    if (!audio) return;
+    const t0 = audio.currentTime + 0.001;
+    if (kind === 'Perfect') toneAt(t0, 1200, 0.05, 'triangle', 0.18);
+    else if (kind === 'Great') toneAt(t0, 950, 0.05, 'triangle', 0.15);
+    else if (kind === 'Good') toneAt(t0, 700, 0.05, 'triangle', 0.12);
+    else toneAt(t0, 180, 0.08, 'sine', 0.12);
+  }
+
+  function startGame(){
+    if (!isIPad) return;
+    initAudio();
+    audio.resume && audio.resume();
+    buildChart();
+    state.running = true;
+    state.score = 0;
+    state.combo = 0;
+    state.maxCombo = 0;
+    state.hit = 0;
+    state.miss = 0;
+    state.judgeText = '';
+    state.judgeT = 0;
+    state.startedAt = performance.now();
+    musicStartAt = audio.currentTime + 0.08;
+    scheduleMusic();
+    overlay.classList.add('hidden');
+  }
+
+  btnStart.addEventListener('pointerdown', (e) => { e.preventDefault(); startGame(); }, { passive:false });
+  btnHow.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    alert('How to Play:\\n\\n- Notes fall down 4 lanes.\\n- Tap inside the lane when a note reaches the hit line.\\n- Perfect/Great/Good gives more points.\\n- ONE MISS = you die (game over).\\n\\nTip: Use 4 fingers (one per lane) on iPad!');
+  }, { passive:false });
+
+  function gameOver(reason){
+    if (!state.running) return;
+    state.running = false;
+    overlay.classList.remove('hidden');
+    const total = state.hit + state.miss;
+    const acc = total ? Math.round((state.hit / total) * 100) : 0;
+    const why = reason ? `<b style="color: var(--danger)">GAME OVER:</b> ${reason}<br/>` : '<b style="color: var(--danger)">GAME OVER</b><br/>';
+    deviceMsg.innerHTML = `${why}Score: <b>${state.score}</b> • Max Combo: <b>${state.maxCombo}</b> • Accuracy: <b>${acc}%</b>`;
+    btnStart.textContent = 'Play Again';
+    btnStart.disabled = !isIPad;
+  }
+
+  // Tap handling
+  function getLocalXY(ev){
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (ev.clientX - rect.left) * (canvas.width / rect.width),
+      y: (ev.clientY - rect.top) * (canvas.height / rect.height),
+      rect
+    };
+  }
+
+  function laneFromX(x){
+    const W = canvas.width, H = canvas.height;
+    const pad = Math.max(12, Math.min(22, W*0.03));
+    const playW = W - pad*2;
+    const laneW = playW / LANES;
+    const i = Math.floor((x - pad) / laneW);
+    return Math.max(0, Math.min(LANES-1, i));
+  }
+
+  function judgeLaneTap(lane){
+    if (!state.running) return;
+    const t = state.t;
+    // Find closest unhit note in that lane near now
+    let best = null;
+    let bestAbs = 1e9;
+    for (const n of notes){
+      if (n.done || n.hit) continue;
+      if (n.lane !== lane) continue;
+      const dt = n.hitTime - t;
+      const ad = Math.abs(dt);
+      if (ad < bestAbs){
+        bestAbs = ad;
+        best = n;
+      }
+      // notes sorted; early exit when too far in future
+      if (dt > WIN_MISS && ad > bestAbs) break;
+    }
+    if (!best || bestAbs > WIN_MISS){
+      // empty tap
+      state.miss++;
+      state.combo = 0;
+      state.judgeText = 'MISS';
+      state.judgeT = 0.45;
+      sfxHit('Miss');
+      gameOver('Wrong tap.');
+      return;
+    }
+
+    best.hit = true;
+    best.done = true;
+    let kind = 'Good';
+    let pts = 100;
+    if (bestAbs <= WIN_PERF){ kind = 'Perfect'; pts = 300; }
+    else if (bestAbs <= WIN_GREAT){ kind = 'Great'; pts = 200; }
+    else if (bestAbs <= WIN_GOOD){ kind = 'Good'; pts = 120; }
+    else { kind = 'Miss'; pts = 0; }
+
+    if (kind === 'Miss'){
+      state.miss++;
+      state.combo = 0;
+      state.judgeText = 'MISS';
+      state.judgeT = 0.45;
+      sfxHit('Miss');
+      gameOver('Missed the timing.');
+      return;
+    }
+
+    state.hit++;
+    state.combo++;
+    state.maxCombo = Math.max(state.maxCombo, state.combo);
+    state.score += pts + Math.floor(state.combo * 1.2);
+    state.judgeText = kind.toUpperCase();
+    state.judgeT = 0.55;
+    sfxHit(kind);
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!state.running) return;
+    e.preventDefault();
+    const p = getLocalXY(e);
+    const lane = laneFromX(p.x);
+    judgeLaneTap(lane);
+  }, { passive:false });
+
+  // Drawing helpers
+  function roundRect(x,y,w,h,r){
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.lineTo(x+w-rr, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
+    ctx.lineTo(x+w, y+h-rr);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+    ctx.lineTo(x+rr, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
+    ctx.lineTo(x, y+rr);
+    ctx.quadraticCurveTo(x, y, x+rr, y);
+    ctx.closePath();
+  }
+
+  function draw(){
+    const W = canvas.width;
+    const H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+
+    // Back glow
+    ctx.fillStyle = 'rgba(0,0,0,0.10)';
+    ctx.fillRect(0,0,W,H);
+
+    const pad = Math.max(12, Math.min(22, W*0.03));
+    const playW = W - pad*2;
+    const laneW = playW / LANES;
+    const hitY = H*0.80;
+    const topY = H*0.10;
+
+    // Lanes
+    for (let i=0;i<LANES;i++){
+      const x = pad + i*laneW;
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fillRect(x, 0, laneW, H);
+      ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+    ctx.beginPath();
+    ctx.moveTo(pad + playW, 0);
+    ctx.lineTo(pad + playW, H);
+    ctx.stroke();
+
+    // Hit line
+    ctx.strokeStyle = 'rgba(34,255,182,0.50)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(pad, hitY);
+    ctx.lineTo(pad + playW, hitY);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    // Notes
+    for (const n of notes){
+      if (n.done) continue;
+      const dt = n.hitTime - state.t;
+      if (dt < -WIN_MISS){
+        n.done = true;
+        state.miss++;
+        state.combo = 0;
+        state.judgeText = 'MISS';
+        state.judgeT = 0.45;
+        sfxHit('Miss');
+        gameOver('You missed a note.');
+        break;
+      }
+      if (dt > leadSec) continue;
+      const a = 1 - (dt / leadSec); // 0..1
+      const y = topY + (hitY - topY) * a;
+      const x0 = pad + n.lane*laneW;
+
+      const col = ['#5bf7ff', '#ffd84d', '#22ffb6', '#ff4d6d'][n.lane];
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = col;
+      roundRect(x0 + laneW*0.18, y - 14, laneW*0.64, 28, 12);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // center mark
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      roundRect(x0 + laneW*0.33, y - 6, laneW*0.34, 12, 6);
+      ctx.fill();
+    }
+
+    // HUD
+    ctx.fillStyle = 'rgba(0,0,0,0.30)';
+    roundRect(10, 10, Math.min(360, W-20), 78, 14);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = '900 14px Verdana';
+    ctx.fillText('Music Tap Notes (iPad)', 22, 34);
+    ctx.fillStyle = 'rgba(242,246,255,0.80)';
+    ctx.font = '900 12px Verdana';
+    ctx.fillText(`Score: ${state.score}`, 22, 54);
+    ctx.fillText(`Combo: ${state.combo} (Max ${state.maxCombo})`, 160, 54);
+    ctx.fillText(`Hit: ${state.hit}  Miss: ${state.miss}`, 22, 72);
+
+    if (state.judgeT > 0){
+      const a = Math.max(0, Math.min(1, state.judgeT / 0.55));
+      ctx.globalAlpha = a;
+      ctx.fillStyle = state.judgeText === 'MISS' ? 'rgba(255,77,109,0.95)' : 'rgba(34,255,182,0.95)';
+      ctx.font = '1000 34px Verdana';
+      ctx.textAlign = 'center';
+      ctx.fillText(state.judgeText, W*0.5, H*0.30);
+      ctx.textAlign = 'left';
+      ctx.globalAlpha = 1;
+    }
+
+    // End screen when song finished
+    if (state.running && state.t > songBeats*beatSec + 1.0){
+      state.running = false;
+      overlay.classList.remove('hidden');
+      const total = state.hit + state.miss;
+      const acc = total ? Math.round((state.hit / total) * 100) : 0;
+      deviceMsg.innerHTML = `Finished!<br/>Score: <b>${state.score}</b> • Max Combo: <b>${state.maxCombo}</b> • Accuracy: <b>${acc}%</b>`;
+      btnStart.textContent = 'Play Again';
+      btnStart.disabled = !isIPad;
+    }
+  }
+
+  function tick(){
+    requestAnimationFrame(tick);
+    if (!state.running){
+      // draw a static background so it looks nice under overlay
+      draw();
+      return;
+    }
+    const ms = performance.now() - state.startedAt;
+    state.t = ms / 1000;
+    state.judgeT = Math.max(0, state.judgeT - 1/60);
+    draw();
+  }
+  requestAnimationFrame(tick);
+
+})();
+</script>
+</body>
+</html>
+
+
