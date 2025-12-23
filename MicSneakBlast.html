@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mic Sneak & Blast (Local Voice Game)</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.10);
+      --panel2:rgba(255,255,255,0.06);
+      --border:rgba(255,255,255,0.16);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.76);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+      --shadow: rgba(0,0,0,0.45);
+    }
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      background:
+        radial-gradient(1000px 700px at 50% 20%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 55%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 20% 85%, rgba(255,77,109,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      overflow:hidden;
+      touch-action:none;
+      -webkit-user-select:none;
+      user-select:none;
+    }
+    .wrap{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+    }
+    .card{
+      width:min(1100px, 96vw);
+      height:min(720px, 92vh);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: 0 24px 80px var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    canvas{ width:100%; height:100%; display:block; }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background: radial-gradient(900px 500px at 50% 25%, rgba(91,247,255,0.12), rgba(0,0,0,0.72));
+    }
+    .overlay.hidden{ display:none; }
+    .panel{
+      width:min(760px, 92vw);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+      box-shadow: 0 24px 80px rgba(0,0,0,0.50);
+      padding:14px 14px 12px;
+      text-align:left;
+    }
+    h1{
+      margin:0 0 8px 0;
+      font-size:26px;
+      letter-spacing:0.3px;
+      text-shadow: 0 0 18px rgba(34,255,182,0.25);
+    }
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-weight:800;
+      font-size:13px;
+      line-height:1.45;
+    }
+    .row{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.28);
+      color:var(--text);
+      font-weight:900;
+      font-size:12px;
+    }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border:1px solid rgba(255,255,255,0.18);
+      border-bottom-color: rgba(255,255,255,0.30);
+      border-radius:8px;
+      background: rgba(0,0,0,0.28);
+      font-weight:1000;
+    }
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.30);
+      color:var(--text);
+      font-weight:900;
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+    }
+    button.primary{
+      background:linear-gradient(180deg, rgba(34,255,182,0.22), rgba(34,255,182,0.10));
+      border-color: rgba(34,255,182,0.35);
+      box-shadow: 0 0 24px rgba(34,255,182,0.18);
+    }
+
+    /* Touch UI */
+    .touchUI{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+    .touchBtn{
+      pointer-events:auto;
+      position:absolute;
+      width:64px;
+      height:64px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.28);
+      color:rgba(242,246,255,0.90);
+      font-weight:1000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    .touchBtn.on{
+      border-color: rgba(34,255,182,0.45);
+      box-shadow: 0 0 18px rgba(34,255,182,0.18);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c"></canvas>
+      <div class="touchUI">
+        <div class="touchBtn" id="btnLeft" style="left:14px;bottom:18px;">◀</div>
+        <div class="touchBtn" id="btnRight" style="left:92px;bottom:18px;">▶</div>
+        <div class="touchBtn" id="btnJump" style="right:14px;bottom:18px;">⤒</div>
+      </div>
+
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1>Mic Sneak & Blast</h1>
+          <p class="sub">
+            This is a <b>local-only</b> microphone game (no online chat). Use your voice volume:
+            <b>quiet = sneak</b>, <b>loud = BLAST</b> nearby “noise bugs”.
+          </p>
+          <div class="row">
+            <span class="pill">Move: <span class="kbd">A/D</span> or <span class="kbd">←/→</span></span>
+            <span class="pill">Jump: <span class="kbd">Space</span></span>
+            <span class="pill">Voice: <b>Talk / shout</b> to blast</span>
+          </div>
+          <div class="row">
+            <span class="pill">iPad: use buttons + your voice</span>
+            <span class="pill">Tip: If mic is too sensitive, move iPad farther away.</span>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="primary" id="btnPlay">Play (Allow Mic)</button>
+            <button id="btnNoMic">Play (No Mic)</button>
+            <button id="btnReset">Reset Best</button>
+          </div>
+          <p class="sub" style="margin-top:10px">
+            Safety: This game never sends audio anywhere. It only measures volume.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const btnPlay = document.getElementById('btnPlay');
+  const btnNoMic = document.getElementById('btnNoMic');
+  const btnReset = document.getElementById('btnReset');
+  const btnLeft = document.getElementById('btnLeft');
+  const btnRight = document.getElementById('btnRight');
+  const btnJump = document.getElementById('btnJump');
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const rand = (a,b) => a + Math.random()*(b-a);
+  const now = () => performance.now();
+
+  // Canvas sizing in CSS pixels
+  let viewW = 0, viewH = 0, viewDpr = 1;
+  function resize(){
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const r = canvas.getBoundingClientRect();
+    viewW = Math.max(320, Math.floor(r.width));
+    viewH = Math.max(240, Math.floor(r.height));
+    viewDpr = dpr;
+    canvas.width = Math.floor(viewW * dpr);
+    canvas.height = Math.floor(viewH * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.imageSmoothingEnabled = false;
+  }
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(resize);
+
+  // Keys
+  const keys = {};
+  function setKey(k, v){ keys[k] = v; }
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') e.preventDefault();
+    setKey(e.key, true);
+  });
+  document.addEventListener('keyup', (e) => setKey(e.key, false));
+
+  function bindHold(el, onDown, onUp){
+    function down(e){ e.preventDefault(); onDown(); }
+    function up(e){ e.preventDefault(); onUp(); }
+    el.addEventListener('pointerdown', down, { passive:false });
+    el.addEventListener('pointerup', up, { passive:false });
+    el.addEventListener('pointercancel', up, { passive:false });
+    el.addEventListener('pointerleave', up, { passive:false });
+  }
+  bindHold(btnLeft, () => { setKey('ArrowLeft', true); btnLeft.classList.add('on'); }, () => { setKey('ArrowLeft', false); btnLeft.classList.remove('on'); });
+  bindHold(btnRight, () => { setKey('ArrowRight', true); btnRight.classList.add('on'); }, () => { setKey('ArrowRight', false); btnRight.classList.remove('on'); });
+  bindHold(btnJump, () => { setKey(' ', true); setKey('Space', true); btnJump.classList.add('on'); }, () => { setKey(' ', false); setKey('Space', false); btnJump.classList.remove('on'); });
+
+  // Audio (mic volume meter only)
+  let ac = null;
+  let analyser = null;
+  let micStream = null;
+  let micEnabled = false;
+  let micLevel = 0;     // 0..1 (smoothed)
+  let micRaw = 0;       // 0..1
+
+  async function initMic(){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ac = ac || new AC();
+    await ac.resume();
+    micStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    const src = ac.createMediaStreamSource(micStream);
+    analyser = ac.createAnalyser();
+    analyser.fftSize = 1024;
+    src.connect(analyser);
+    micEnabled = true;
+  }
+
+  function readMic(){
+    if (!micEnabled || !analyser) { micRaw = 0; micLevel *= 0.92; return; }
+    const buf = new Uint8Array(analyser.fftSize);
+    analyser.getByteTimeDomainData(buf);
+    // RMS around 128
+    let sum = 0;
+    for (let i=0;i<buf.length;i++){
+      const v = (buf[i] - 128) / 128;
+      sum += v*v;
+    }
+    const rms = Math.sqrt(sum / buf.length);
+    // map to 0..1 with a little curve
+    micRaw = clamp(rms * 2.8, 0, 1);
+    micLevel = micLevel*0.85 + micRaw*0.15;
+  }
+
+  // Game
+  const LS = { best:'micSneakBest' };
+  let best = parseInt(localStorage.getItem(LS.best) || '0', 10) || 0;
+
+  const player = { x: 120, y: 0, vx:0, vy:0, w: 22, h: 34, onGround:false, face:1 };
+  const bugs = []; // {x,y,vx,vy,r,hp,scared}
+  const pops = []; // {x,y,t}
+  let score = 0;
+  let timeLeft = 60;
+  let running = false;
+  let lastT = 0;
+
+  // world
+  const groundY = () => Math.floor(viewH*0.78);
+  function resetRun(){
+    score = 0;
+    timeLeft = 60;
+    player.x = 120; player.y = groundY()-player.h; player.vx = 0; player.vy = 0;
+    bugs.length = 0;
+    pops.length = 0;
+    for (let i=0;i<8;i++) spawnBug();
+  }
+
+  function spawnBug(){
+    const g = groundY();
+    const x = rand(60, viewW-60);
+    const y = g - 10 - rand(0, 120);
+    bugs.push({ x, y, vx: rand(-40,40), vy: rand(-10,10), r: 14, hp: 2, scared: 0 });
+  }
+
+  function blastPower(){
+    // talking makes small push, shouting makes blast
+    const p = micEnabled ? micLevel : 0;
+    // threshold for blast
+    if (p > 0.55) return clamp((p - 0.55) / 0.45, 0, 1);
+    return 0;
+  }
+
+  function update(dt){
+    readMic();
+    if (!running) return;
+
+    timeLeft -= dt;
+    if (timeLeft <= 0){
+      running = false;
+      best = Math.max(best, score);
+      localStorage.setItem(LS.best, String(best));
+      overlay.classList.remove('hidden');
+      return;
+    }
+
+    // movement
+    const speed = 360;
+    const accel = 2200;
+    const friction = Math.pow(0.84, dt*60);
+    const grav = 2500;
+    const jumpV = 900;
+
+    const left = keys['ArrowLeft'] || keys['a'] || keys['A'];
+    const right = keys['ArrowRight'] || keys['d'] || keys['D'];
+    const jump = keys[' '] || keys['Space'];
+
+    let ax = 0;
+    if (left) ax -= accel;
+    if (right) ax += accel;
+    if (ax !== 0) player.face = ax > 0 ? 1 : -1;
+
+    player.vx += ax * dt;
+    player.vx = clamp(player.vx, -speed, speed);
+    if (ax === 0) player.vx *= friction;
+    player.vy += grav * dt;
+    player.vy = clamp(player.vy, -9999, 2600);
+
+    if (jump && player.onGround){
+      player.vy = -jumpV;
+      player.onGround = false;
+    }
+
+    player.x += player.vx * dt;
+    player.y += player.vy * dt;
+    player.x = clamp(player.x, 10, viewW - 10 - player.w);
+    const g = groundY();
+    if (player.y + player.h >= g){
+      player.y = g - player.h;
+      player.vy = 0;
+      player.onGround = true;
+    }
+
+    // sneak/noise: if you are loud, bugs will drift toward you (curious) but also can get blasted
+    const blast = blastPower();
+    const px = player.x + player.w*0.5;
+    const py = player.y + player.h*0.45;
+
+    for (let i=bugs.length-1;i>=0;i--){
+      const b = bugs[i];
+      b.scared = Math.max(0, b.scared - dt);
+      // float
+      b.vy += Math.sin((now()/1000) + i)*8*dt;
+      // wander
+      b.vx += rand(-30,30)*dt*0.15;
+      b.vx = clamp(b.vx, -120, 120);
+
+      // attracted to noise (if talking but not blasting)
+      if (micEnabled && micLevel > 0.15 && blast === 0 && b.scared <= 0){
+        const dx = px - b.x;
+        b.vx += clamp(dx, -220, 220) * dt * 0.35;
+      }
+
+      // BLAST effect
+      if (blast > 0){
+        const dx = b.x - px;
+        const dy = b.y - py;
+        const d = Math.hypot(dx,dy) || 1;
+        const range = 170 + blast*120;
+        if (d < range){
+          const push = (1 - d/range) * (900 + blast*900);
+          b.vx += (dx/d) * push * dt;
+          b.vy += (dy/d) * push * dt;
+          b.scared = 0.35;
+          // damage if close enough
+          if (d < 85){
+            b.hp -= dt * (1.4 + blast*2.0);
+          }
+        }
+      }
+
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      // bounds
+      b.x = clamp(b.x, 10, viewW-10);
+      b.y = clamp(b.y, 40, g-30);
+
+      // “pop” when hp depleted
+      if (b.hp <= 0){
+        score += 1;
+        pops.push({ x:b.x, y:b.y, t:0.6 });
+        bugs.splice(i,1);
+        spawnBug();
+      }
+    }
+
+    for (let i=pops.length-1;i>=0;i--){
+      pops[i].t -= dt;
+      if (pops[i].t <= 0) pops.splice(i,1);
+    }
+  }
+
+  function roundRect(x,y,w,h,r){
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.lineTo(x+w-rr, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
+    ctx.lineTo(x+w, y+h-rr);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+    ctx.lineTo(x+rr, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
+    ctx.lineTo(x, y+rr);
+    ctx.quadraticCurveTo(x, y, x+rr, y);
+    ctx.closePath();
+  }
+
+  function draw(){
+    const W = viewW || 800;
+    const H = viewH || 520;
+    ctx.clearRect(0,0,W,H);
+
+    // sky
+    const t = now()/1000;
+    const grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0, 'rgba(20,30,60,1)');
+    grad.addColorStop(1, 'rgba(6,8,18,1)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+
+    // ground
+    const g = groundY();
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(0, g, W, H-g);
+    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    ctx.beginPath();
+    ctx.moveTo(0, g+0.5);
+    ctx.lineTo(W, g+0.5);
+    ctx.stroke();
+
+    // bugs
+    for (const b of bugs){
+      ctx.shadowColor = '#ff4d6d';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = '#ff4d6d';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // eyes
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath();
+      ctx.arc(b.x-4, b.y-2, 2.6, 0, Math.PI*2);
+      ctx.arc(b.x+4, b.y-2, 2.6, 0, Math.PI*2);
+      ctx.fill();
+      // hp ring
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r+6, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    // pop effects
+    for (const p of pops){
+      const a = clamp(p.t / 0.6, 0, 1);
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = 'rgba(255,216,77,0.95)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 10 + (1-a)*26, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 1;
+    }
+
+    // player (blocky)
+    ctx.shadowColor = '#22ffb6';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = '#22ffb6';
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.shadowBlur = 0;
+    // face
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    const eyeX = player.face > 0 ? (player.x + player.w*0.66) : (player.x + player.w*0.18);
+    ctx.fillRect(eyeX, player.y + 10, 4, 4);
+    // feet shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.20)';
+    ctx.fillRect(player.x+2, player.y+player.h-4, player.w-4, 3);
+
+    // mic meter
+    const meterW = Math.min(320, W-20);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    roundRect(10, 10, meterW, 82, 14);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = '900 14px Verdana';
+    ctx.fillText('Mic Sneak & Blast', 22, 32);
+    ctx.fillStyle = 'rgba(242,246,255,0.80)';
+    ctx.font = '900 12px Verdana';
+    ctx.fillText(`Score: ${score}  •  Best: ${best}  •  Time: ${Math.ceil(timeLeft)}s`, 22, 52);
+    ctx.fillText(micEnabled ? 'Mic: ON (volume only)' : 'Mic: OFF', 22, 72);
+
+    // bar
+    const bx = 12, by = 58, bw = meterW-24, bh = 12;
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.fillRect(bx, by+18, bw, bh);
+    // quiet zone
+    ctx.fillStyle = 'rgba(34,255,182,0.25)';
+    ctx.fillRect(bx, by+18, bw*0.55, bh);
+    // blast zone
+    ctx.fillStyle = 'rgba(255,77,109,0.16)';
+    ctx.fillRect(bx + bw*0.55, by+18, bw*0.45, bh);
+    // level
+    ctx.fillStyle = 'rgba(34,255,182,0.90)';
+    ctx.fillRect(bx, by+18, bw*micLevel, bh);
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.strokeRect(bx+0.5, by+18+0.5, bw-1, bh-1);
+    ctx.fillStyle = 'rgba(242,246,255,0.75)';
+    ctx.fillText('Quiet', bx, by+14);
+    ctx.fillText('BLAST!', bx + bw*0.55 + 6, by+14);
+
+    // blast ring visual
+    const blast = blastPower();
+    if (blast > 0){
+      const px = player.x + player.w*0.5;
+      const py = player.y + player.h*0.45;
+      ctx.strokeStyle = 'rgba(255,216,77,0.85)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(px, py, 90 + blast*140, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+  }
+
+  function startRun(){
+    resize();
+    resetRun();
+    overlay.classList.add('hidden');
+    running = true;
+    lastT = 0;
+  }
+
+  btnPlay.addEventListener('pointerdown', async (e) => {
+    e.preventDefault();
+    try{
+      await initMic();
+      micEnabled = true;
+    } catch {
+      micEnabled = false;
+    }
+    startRun();
+  }, { passive:false });
+
+  btnNoMic.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    micEnabled = false;
+    startRun();
+  }, { passive:false });
+
+  btnReset.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    localStorage.removeItem(LS.best);
+    best = 0;
+  }, { passive:false });
+
+  function frame(t){
+    requestAnimationFrame(frame);
+    if (!lastT) lastT = t;
+    const dt = Math.min(0.04, (t - lastT) / 1000);
+    lastT = t;
+    update(dt);
+    draw();
+  }
+  requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
+
+
+
+

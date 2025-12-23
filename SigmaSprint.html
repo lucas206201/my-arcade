@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Sigma Sprint (Σ)</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.08);
+      --panel2:rgba(255,255,255,0.04);
+      --border:rgba(255,255,255,0.14);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.75);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+      --purple:#be00be;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:
+        radial-gradient(900px 700px at 50% 25%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 20% 85%, rgba(190,0,190,0.12) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      color:var(--text);
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      overflow:hidden;
+      touch-action:none;
+      padding:18px 12px;
+    }
+    .wrap{
+      width:min(1100px, 96vw);
+      display:grid;
+      grid-template-columns: 1fr 340px;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
+    .card{
+      position:relative;
+      border-radius:16px;
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      box-shadow:0 24px 80px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      background:radial-gradient(1200px 700px at 50% 25%, #18244f 0%, #0a0d20 55%, #070914 100%);
+      touch-action:none;
+    }
+    .side{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .hud{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:900;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      min-width:170px;
+      text-align:center;
+      font-weight:900;
+    }
+    .btnRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    button{
+      border:0;
+      border-radius:14px;
+      padding:12px 12px;
+      cursor:pointer;
+      font: inherit;
+      font-weight:900;
+      color:#071019;
+      background:linear-gradient(45deg, var(--accent), #5bf7ff);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      transition: transform .08s ease;
+      user-select:none;
+      touch-action: manipulation;
+    }
+    button:active{transform:scale(0.98)}
+    button.secondary{background:linear-gradient(45deg, var(--gold), #ffae4d)}
+    button.danger{background:linear-gradient(45deg, var(--danger), #ffae4d)}
+    .help{
+      font-size:13px;
+      line-height:1.4;
+      color:var(--muted);
+    }
+    .controls{
+      display:none;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    .controls button{ padding:14px 10px; font-size:18px; border-radius:14px; }
+    @media (max-width: 980px){ .controls{display:grid} }
+    .overlay{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.82);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:16px;
+      z-index:10;
+    }
+    .overlay.hidden{display:none}
+    .panel{
+      width:min(760px, 92%);
+      background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(0,0,0,0.55));
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 30px 110px rgba(0,0,0,0.55);
+      text-align:center;
+    }
+    .panel h1{
+      margin:0 0 8px 0;
+      font-size:34px;
+      letter-spacing:0.6px;
+      color:#eaffff;
+      text-shadow:0 0 18px rgba(34,255,182,0.30);
+    }
+    .panel p{ margin: 8px 0 14px 0; font-size:14px; color:var(--muted); }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.35);
+      font-weight:900;
+      margin:0 2px;
+      color:var(--text);
+    }
+    .shop{
+      margin-top:12px;
+      text-align:left;
+      background:rgba(0,0,0,0.22);
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:14px;
+      padding:12px;
+    }
+    .shop h3{
+      margin:0 0 10px 0;
+      font-size:14px;
+      color:#eaffff;
+      letter-spacing:0.4px;
+    }
+    .shopItem{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.22);
+      margin-bottom:10px;
+    }
+    .shopName{ font-weight:900; font-size:14px; }
+    .shopDesc{ margin-top:4px; font-size:11px; color:rgba(242,246,255,0.76); font-weight:800; line-height:1.25; }
+    .tag{
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.30);
+      font-size:11px;
+      font-weight:900;
+      color:rgba(242,246,255,0.92);
+      margin-left:8px;
+      white-space:nowrap;
+    }
+    .tag.locked{ color:rgba(255,77,109,0.95); }
+    .tag.owned{ color:rgba(34,255,182,0.95); }
+    .tinyBtn{
+      padding:8px 10px;
+      border-radius:12px;
+      font-weight:900;
+      min-width:110px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c" width="960" height="600"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1 id="ovTitle">Sigma Sprint (Σ)</h1>
+          <p id="ovText">Collect Σ tokens, dodge distractions, and upgrade your runner.</p>
+          <p>
+            Move: <span class="kbd">←</span><span class="kbd">→</span> or <span class="kbd">A</span><span class="kbd">D</span> • Jump: <span class="kbd">Space</span><br/>
+            Shop: <span class="kbd">S</span>
+          </p>
+          <div class="btnRow" style="margin-top:10px">
+            <button id="btnPlay">PLAY</button>
+            <button class="secondary" id="btnShop">SHOP</button>
+          </div>
+          <div id="homeOnly" class="help" style="margin-top:10px">
+            - Grab Σ tokens (+score) and coins (+money).<br/>
+            - Avoid “distraction” blocks (ouch!).<br/>
+            - Buy upgrades: speed, jump, coin bonus.
+          </div>
+
+          <div id="shopOverlay" style="display:none;margin-top:12px;text-align:left">
+            <div class="row" style="margin-bottom:10px">
+              <span style="font-weight:900">Your Coins</span>
+              <span class="pill" id="shopCoins" style="min-width:110px">0</span>
+            </div>
+            <div id="shopOverlayList"></div>
+            <div class="btnRow" style="margin-top:12px">
+              <button class="secondary" id="btnBackHome">BACK</button>
+              <button id="btnPlayFromShop">PLAY</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card side">
+      <div class="hud">
+        <div class="row"><span>Score</span><span class="pill" id="score">0</span></div>
+        <div class="row"><span>Coins</span><span class="pill" id="coins">0</span></div>
+        <div class="row"><span>Best</span><span class="pill" id="best">0</span></div>
+        <div class="row"><span>Level</span><span class="pill" id="level">1</span></div>
+        <div class="btnRow">
+          <button class="secondary" id="btnPause">Pause</button>
+          <button class="danger" id="btnRestart">Restart</button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="btnLeft">←</button>
+        <button id="btnJump" class="secondary">JUMP</button>
+        <button id="btnRight">→</button>
+      </div>
+
+      <div class="shop">
+        <h3>Upgrades</h3>
+        <div id="shopList"></div>
+      </div>
+
+      <div class="help">
+        Tip: buy Jump first if you keep bonking into blocks.
+      </div>
+    </div>
+  </div>
+
+<script>
+// Sigma Sprint — single file runner with coin upgrades
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const btnPlay = document.getElementById('btnPlay');
+const btnShop = document.getElementById('btnShop');
+const homeOnlyEl = document.getElementById('homeOnly');
+const shopOverlayEl = document.getElementById('shopOverlay');
+const shopOverlayList = document.getElementById('shopOverlayList');
+const shopCoinsEl = document.getElementById('shopCoins');
+const btnBackHome = document.getElementById('btnBackHome');
+const btnPlayFromShop = document.getElementById('btnPlayFromShop');
+
+const scoreEl = document.getElementById('score');
+const coinsEl = document.getElementById('coins');
+const bestEl = document.getElementById('best');
+const levelEl = document.getElementById('level');
+const btnPause = document.getElementById('btnPause');
+const btnRestart = document.getElementById('btnRestart');
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+const btnJump = document.getElementById('btnJump');
+const shopList = document.getElementById('shopList');
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const rand = (a,b) => a + Math.random()*(b-a);
+const now = () => performance.now();
+
+function resize(){
+  const maxW = Math.min(960, Math.floor(window.innerWidth * 0.96));
+  const maxH = Math.min(600, Math.floor(window.innerHeight * 0.86));
+  let w = maxW;
+  let h = Math.floor(w * 5/8);
+  if (h > maxH){ h = maxH; w = Math.floor(h * 8/5); }
+  canvas.width = Math.max(520, w);
+  canvas.height = Math.max(320, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Save keys
+const LS_COINS = 'sigmaCoins';
+const LS_BEST = 'sigmaBest';
+const LS_UP = 'sigmaUpgrades';
+let coins = Number(localStorage.getItem(LS_COINS) || '0');
+let best = Number(localStorage.getItem(LS_BEST) || '0');
+let upgrades = (() => {
+  try {
+    const raw = localStorage.getItem(LS_UP);
+    const obj = raw ? JSON.parse(raw) : { speed:0, jump:0, bonus:0 };
+    return { speed: obj.speed|0, jump: obj.jump|0, bonus: obj.bonus|0 };
+  } catch {
+    return { speed:0, jump:0, bonus:0 };
+  }
+})();
+
+function save(){
+  localStorage.setItem(LS_COINS, String(coins));
+  localStorage.setItem(LS_BEST, String(best));
+  localStorage.setItem(LS_UP, JSON.stringify(upgrades));
+}
+
+// Upgrade catalog
+const UPG = [
+  { id:'speed', name:'Speed', base:60, desc:'Run faster', effect:(lv)=>`+${(lv*6).toFixed(0)}%` },
+  { id:'jump', name:'Jump', base:60, desc:'Jump higher', effect:(lv)=>`+${(lv*10).toFixed(0)}%` },
+  { id:'bonus', name:'Coin Bonus', base:90, desc:'More coins', effect:(lv)=>`x${(1+lv*0.08).toFixed(2)}` },
+];
+function price(id){
+  const u = UPG.find(x=>x.id===id);
+  const lv = upgrades[id] || 0;
+  return Math.floor(u.base * Math.pow(1.45, lv));
+}
+
+function renderShop(){
+  shopCoinsEl.textContent = String(coins);
+  renderShopInto(shopOverlayList);
+  renderShopInto(shopList);
+}
+function renderShopInto(container){
+  container.innerHTML = '';
+  for (const u of UPG){
+    const lv = upgrades[u.id] || 0;
+    const cost = price(u.id);
+    const row = document.createElement('div');
+    row.className = 'shopItem';
+    const left = document.createElement('div');
+    left.innerHTML = `
+      <div class="shopName">${u.name}
+        <span class="tag owned">LV ${lv}</span>
+        <span class="tag ${coins>=cost ? 'owned' : 'locked'}">${cost} COINS</span>
+      </div>
+      <div class="shopDesc">${u.desc} • Current: ${u.effect(lv)}</div>
+    `;
+    const btn = document.createElement('button');
+    btn.className = 'secondary tinyBtn';
+    btn.textContent = 'Upgrade';
+    btn.disabled = coins < cost;
+    btn.addEventListener('click', () => {
+      if (coins < cost) return;
+      coins -= cost;
+      upgrades[u.id] = (upgrades[u.id]||0) + 1;
+      save();
+      renderShop();
+      updateHUD();
+    });
+    row.appendChild(left);
+    row.appendChild(btn);
+    container.appendChild(row);
+  }
+}
+
+// Input
+const keys = new Set();
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ') e.preventDefault();
+  keys.add(e.key);
+  if (!running || paused || gameOver) return;
+  if (e.key === ' ') jump();
+  if (e.key === 's' || e.key === 'S') openShop();
+});
+document.addEventListener('keyup', (e) => keys.delete(e.key));
+const hold = { left:false, right:false };
+function bindHold(el, which){
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); hold[which] = true; });
+  window.addEventListener('pointerup', () => { hold[which] = false; });
+  el.addEventListener('pointerleave', () => { hold[which] = false; });
+}
+bindHold(btnLeft,'left');
+bindHold(btnRight,'right');
+btnJump.addEventListener('click', () => jump());
+
+// Game state
+let running=false, paused=false, gameOver=false;
+let lastT=0;
+let score=0;
+let level=1;
+let scroll=0;
+
+const ground = { y:0 };
+const player = { x:0, y:0, vx:0, vy:0, w:32, h:44, onGround:false };
+const obstacles = []; // {x,y,w,h}
+const sigmas = [];    // {x,y,r}
+const coinsDrop = []; // {x,y,r}
+const particles = [];
+
+function resetRun(){
+  score = 0;
+  level = 1;
+  scroll = 0;
+  obstacles.length=0;
+  sigmas.length=0;
+  coinsDrop.length=0;
+  particles.length=0;
+  ground.y = canvas.height * 0.78;
+  player.w = Math.max(26, Math.floor(canvas.width * 0.035));
+  player.h = Math.floor(player.w * 1.4);
+  player.x = canvas.width * 0.25;
+  player.y = ground.y - player.h/2;
+  player.vx = 0;
+  player.vy = 0;
+  player.onGround = true;
+  spawnInitial();
+  updateHUD();
+}
+
+function spawnInitial(){
+  for (let i=0;i<6;i++){
+    spawnChunk(520 + i*260);
+  }
+}
+
+function spawnChunk(baseX){
+  // obstacle
+  if (Math.random() < 0.7){
+    const h = rand(player.h*0.65, player.h*1.4);
+    obstacles.push({ x: baseX, y: ground.y - h, w: rand(26, 44), h });
+  }
+  // sigma token
+  if (Math.random() < 0.9){
+    sigmas.push({ x: baseX + rand(50, 120), y: ground.y - rand(90, 170), r: 14 });
+  }
+  // coin
+  if (Math.random() < 0.95){
+    coinsDrop.push({ x: baseX + rand(80, 140), y: ground.y - rand(60, 120), r: 10 });
+  }
+}
+
+function burst(x,y,col,n=14){
+  for (let i=0;i<n;i++){
+    particles.push({ x,y, vx: rand(-240,240), vy: rand(-280,120), life: rand(0.25,0.8), r: rand(2,5), col });
+  }
+}
+
+function jump(){
+  if (!player.onGround) return;
+  const jumpLv = upgrades.jump || 0;
+  const jumpMul = 1 + jumpLv * 0.10;
+  player.vy = -740 * jumpMul;
+  player.onGround = false;
+}
+
+function openShop(){
+  overlay.classList.remove('hidden');
+  homeOnlyEl.style.display = 'none';
+  shopOverlayEl.style.display = 'block';
+  renderShop();
+}
+function closeShop(){
+  shopOverlayEl.style.display = 'none';
+  homeOnlyEl.style.display = 'block';
+}
+
+btnPlay.addEventListener('click', start);
+btnPlayFromShop.addEventListener('click', start);
+btnShop.addEventListener('click', openShop);
+btnBackHome.addEventListener('click', closeShop);
+btnPause.addEventListener('click', () => {
+  if (!running || gameOver) return;
+  paused = !paused;
+  btnPause.textContent = paused ? 'Resume' : 'Pause';
+});
+btnRestart.addEventListener('click', start);
+
+function start(){
+  resetRun();
+  running = true;
+  paused = false;
+  gameOver = false;
+  lastT = 0;
+  overlay.classList.add('hidden');
+  btnPause.textContent = 'Pause';
+  renderShop();
+}
+
+function end(){
+  gameOver = true;
+  paused = false;
+  overlay.classList.remove('hidden');
+  homeOnlyEl.style.display = 'block';
+  shopOverlayEl.style.display = 'none';
+  btnPlay.textContent = 'Play Again';
+  best = Math.max(best, Math.floor(score));
+  save();
+  updateHUD();
+}
+
+function updateHUD(){
+  scoreEl.textContent = String(Math.floor(score));
+  coinsEl.textContent = String(coins);
+  bestEl.textContent = String(best);
+  levelEl.textContent = String(level);
+  shopCoinsEl.textContent = String(coins);
+}
+
+function rectHit(ax,ay,aw,ah, bx,by,bw,bh){
+  return (ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by);
+}
+
+let spawnX = 0;
+
+function update(dt){
+  // level scaling
+  level = 1 + Math.floor(score / 120);
+
+  const speedLv = upgrades.speed || 0;
+  const runSpeed = 320 * (1 + speedLv * 0.06) + level * 14;
+  const gravity = 1800;
+
+  // left/right drift (small)
+  const left = keys.has('ArrowLeft') || keys.has('a') || keys.has('A') || hold.left;
+  const right = keys.has('ArrowRight') || keys.has('d') || keys.has('D') || hold.right;
+  const steer = (left?-1:0) + (right?1:0);
+  player.x += steer * 190 * dt;
+  player.x = clamp(player.x, 40, canvas.width - 40);
+
+  // scroll world left
+  scroll += runSpeed * dt;
+
+  // physics
+  player.vy += gravity * dt;
+  player.y += player.vy * dt;
+  if (player.y + player.h/2 >= ground.y){
+    player.y = ground.y - player.h/2;
+    player.vy = 0;
+    player.onGround = true;
+  }
+
+  // spawn more
+  spawnX = Math.max(spawnX, scroll + canvas.width);
+  while (spawnX < scroll + canvas.width + 900){
+    spawnChunk(spawnX + rand(240, 360));
+    spawnX += rand(240, 360);
+  }
+
+  // collisions with obstacles
+  const px = player.x - player.w/2;
+  const py = player.y - player.h/2;
+  for (const o of obstacles){
+    const ox = o.x - scroll;
+    const oy = o.y;
+    if (rectHit(px, py, player.w, player.h, ox, oy, o.w, o.h)){
+      burst(player.x, player.y, '#ff4d6d', 28);
+      end();
+      return;
+    }
+  }
+
+  // collect sigmas (score)
+  for (let i=sigmas.length-1;i>=0;i--){
+    const s = sigmas[i];
+    const sx = s.x - scroll;
+    const dx = sx - player.x;
+    const dy = s.y - player.y;
+    if (dx*dx + dy*dy < (s.r + player.w*0.35)*(s.r + player.w*0.35)){
+      sigmas.splice(i,1);
+      score += 20;
+      burst(sx, s.y, '#22ffb6', 14);
+    }
+  }
+
+  // collect coins
+  const bonusLv = upgrades.bonus || 0;
+  const coinMul = 1 + bonusLv * 0.08;
+  for (let i=coinsDrop.length-1;i>=0;i--){
+    const c = coinsDrop[i];
+    const cx = c.x - scroll;
+    const dx = cx - player.x;
+    const dy = c.y - player.y;
+    if (dx*dx + dy*dy < (c.r + player.w*0.35)*(c.r + player.w*0.35)){
+      coinsDrop.splice(i,1);
+      coins += Math.max(1, Math.round(1 * coinMul));
+      save();
+      burst(cx, c.y, '#ffd84d', 12);
+    }
+  }
+
+  // cleanup offscreen
+  const killX = scroll - 200;
+  while (obstacles.length && obstacles[0].x < killX) obstacles.shift();
+  while (sigmas.length && sigmas[0].x < killX) sigmas.shift();
+  while (coinsDrop.length && coinsDrop[0].x < killX) coinsDrop.shift();
+
+  // particles
+  for (let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= Math.pow(0.88, dt*60);
+    p.vy *= Math.pow(0.88, dt*60);
+    if (p.life <= 0) particles.splice(i,1);
+  }
+
+  updateHUD();
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // ground
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0, ground.y, canvas.width, canvas.height - ground.y);
+
+  // neon grid stars
+  ctx.globalAlpha = 0.35;
+  for (let i=0;i<14;i++){
+    const x = (i*97 + now()*0.03) % canvas.width;
+    const y = (i*53 + 40) % ground.y;
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.beginPath();
+    ctx.arc(x, y, 1.8, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // obstacles
+  for (const o of obstacles){
+    const x = o.x - scroll;
+    if (x < -100 || x > canvas.width + 100) continue;
+    ctx.fillStyle = 'rgba(255,77,109,0.80)';
+    ctx.shadowColor = 'rgba(255,77,109,0.8)';
+    ctx.shadowBlur = 12;
+    roundRect(x, o.y, o.w, o.h, 10, true, false);
+    ctx.shadowBlur = 0;
+  }
+
+  // sigma tokens
+  for (const s of sigmas){
+    const x = s.x - scroll;
+    if (x < -60 || x > canvas.width + 60) continue;
+    ctx.shadowColor = '#22ffb6';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = '#22ffb6';
+    ctx.beginPath();
+    ctx.arc(x, s.y, s.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.font = `900 ${Math.floor(s.r*1.4)}px Verdana`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Σ', x, s.y + 1);
+    ctx.textAlign = 'left';
+  }
+
+  // coins
+  for (const c of coinsDrop){
+    const x = c.x - scroll;
+    if (x < -60 || x > canvas.width + 60) continue;
+    ctx.shadowColor = '#ffd84d';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#ffd84d';
+    ctx.beginPath();
+    ctx.arc(x, c.y, c.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.beginPath();
+    ctx.arc(x - 3, c.y - 3, 3, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // player
+  ctx.shadowColor = '#be00be';
+  ctx.shadowBlur = 16;
+  ctx.fillStyle = '#be00be';
+  roundRect(player.x - player.w/2, player.y - player.h/2, player.w, player.h, 12, true, false);
+  ctx.shadowBlur = 0;
+  // face
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.beginPath();
+  ctx.arc(player.x - 6, player.y - 6, 3, 0, Math.PI*2);
+  ctx.arc(player.x + 6, player.y - 6, 3, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(player.x, player.y + 6, 8, 0, Math.PI);
+  ctx.stroke();
+
+  // particles
+  for (const p of particles){
+    ctx.globalAlpha = clamp(p.life / 0.8, 0, 1);
+    ctx.fillStyle = p.col;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // hint banner
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(10, 10, 520, 30);
+  ctx.fillStyle = 'rgba(255,255,255,0.90)';
+  ctx.font = '900 14px Verdana, "Comic Sans MS", sans-serif';
+  ctx.fillText('Collect Σ and coins. Space to jump. Press S for Shop.', 18, 31);
+}
+
+function roundRect(x,y,w,h,r, fill, stroke){
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y);
+  ctx.lineTo(x+w-rr, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
+  ctx.lineTo(x+w, y+h-rr);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+  ctx.lineTo(x+rr, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
+  ctx.lineTo(x, y+rr);
+  ctx.quadraticCurveTo(x, y, x+rr, y);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
+}
+
+function frame(t){
+  requestAnimationFrame(frame);
+  if (!running){ draw(); return; }
+  if (paused || gameOver){ draw(); return; }
+  if (!lastT) lastT = t;
+  const dt = Math.min(0.033, (t - lastT) / 1000);
+  lastT = t;
+  update(dt);
+  draw();
+}
+requestAnimationFrame(frame);
+
+// init
+bestEl.textContent = String(best);
+renderShop();
+updateHUD();
+
+</script>
+</body>
+</html>
+
+

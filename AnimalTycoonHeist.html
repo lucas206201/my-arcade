@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Silly Animal Tycoon Heist</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.08);
+      --panel2:rgba(255,255,255,0.04);
+      --border:rgba(255,255,255,0.14);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.75);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+      --cyan:#5bf7ff;
+      --purple:#be00be;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:
+        radial-gradient(900px 700px at 50% 25%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 20% 85%, rgba(190,0,190,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      color:var(--text);
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      overflow:hidden;
+      touch-action:none;
+      padding:18px 12px;
+    }
+    .wrap{
+      width:min(1200px, 96vw);
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 1020px){ .wrap{grid-template-columns:1fr} }
+    .card{
+      position:relative;
+      border-radius:16px;
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      box-shadow:0 24px 80px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      background:
+        radial-gradient(1100px 700px at 50% 15%, rgba(91,247,255,0.10) 0%, rgba(7,9,20,0) 55%),
+        radial-gradient(1200px 800px at 30% 80%, rgba(190,0,190,0.10) 0%, rgba(7,9,20,0) 55%),
+        linear-gradient(180deg, #141a3a 0%, #090b1a 70%, #070914 100%);
+      touch-action:none;
+    }
+    .side{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .hud{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:900;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      min-width:190px;
+      text-align:center;
+      font-weight:900;
+    }
+    .btnRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    button{
+      border:0;
+      border-radius:14px;
+      padding:12px 12px;
+      cursor:pointer;
+      font: inherit;
+      font-weight:900;
+      color:#071019;
+      background:linear-gradient(45deg, var(--accent), #5bf7ff);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      transition: transform .08s ease, opacity .2s ease;
+      user-select:none;
+      touch-action: manipulation;
+    }
+    button:active{transform:scale(0.98)}
+    button.secondary{background:linear-gradient(45deg, var(--gold), #ffae4d)}
+    button.danger{background:linear-gradient(45deg, var(--danger), #ffae4d)}
+    button:disabled{opacity:0.45; cursor:not-allowed}
+
+    .panelBox{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+    }
+    .panelBox h3{
+      margin:0 0 10px 0;
+      font-size:14px;
+      color:#eaffff;
+      letter-spacing:0.4px;
+    }
+    .help{
+      font-size:13px;
+      line-height:1.4;
+      color:var(--muted);
+    }
+    .shopItem{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.22);
+      margin-bottom:10px;
+      font-size:13px;
+      font-weight:900;
+    }
+    .shopItem small{
+      display:block;
+      font-size:11px;
+      font-weight:800;
+      opacity:0.8;
+      margin-top:2px;
+      line-height:1.25;
+    }
+    .tinyBtn{
+      padding:8px 10px;
+      border-radius:12px;
+      font-weight:900;
+      min-width:92px;
+    }
+    .tag{
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.30);
+      font-size:11px;
+      font-weight:900;
+      color:rgba(242,246,255,0.92);
+      margin-left:8px;
+      white-space:nowrap;
+    }
+    .log{
+      max-height:260px;
+      overflow:auto;
+      font-size:13px;
+      line-height:1.35;
+    }
+    .logLine{ margin:0 0 6px 0; word-break:break-word; }
+    .logLine .who{ font-weight:900; color:#eaffff; }
+    .logLine .sys{ color:rgba(34,255,182,0.95); }
+    .overlay{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.82);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:16px;
+      z-index:10;
+    }
+    .overlay.hidden{display:none}
+    .panel{
+      width:min(820px, 92%);
+      background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(0,0,0,0.55));
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 30px 110px rgba(0,0,0,0.55);
+      text-align:center;
+    }
+    .panel h1{
+      margin:0 0 8px 0;
+      font-size:34px;
+      letter-spacing:0.6px;
+      color:#eaffff;
+      text-shadow:0 0 18px rgba(34,255,182,0.30);
+    }
+    .panel p{ margin: 8px 0 14px 0; font-size:14px; color:var(--muted); }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.35);
+      font-weight:900;
+      margin:0 2px;
+      color:var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c" width="960" height="600"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1>Silly Animal Tycoon Heist</h1>
+          <p>Buy silly animals to earn money, then raid bases to steal their animals.</p>
+          <p>
+            Click a base on the map to select it.<br/>
+            Raid: <span class="kbd">R</span> • Buy: <span class="kbd">B</span> • Pause: <span class="kbd">P</span>
+          </p>
+          <div class="btnRow" style="margin-top:10px">
+            <button id="btnPlay">PLAY</button>
+            <button class="secondary" id="btnReset">Reset Save</button>
+          </div>
+          <p class="help" style="margin-top:10px;text-align:left">
+            - Each animal makes <b>$1 to $100,000,000,000,000</b> per second.<br/>
+            - Animals stay in your base (persistent save).<br/>
+            - AI can raid you too—buy more to get stronger!<br/>
+            - Every month: <b>6 new animals</b> appear automatically (some are holiday-only).<br/>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card side">
+      <div class="hud">
+        <div class="row"><span>Selected Base</span><span class="pill" id="sel">You</span></div>
+        <div class="row"><span>Your Money</span><span class="pill" id="money">$0</span></div>
+        <div class="row"><span>Your Income</span><span class="pill" id="income">$0/s</span></div>
+        <div class="row"><span>Your Animals</span><span class="pill" id="count">0</span></div>
+        <div class="btnRow">
+          <button id="btnBuy">Buy Animal</button>
+          <button class="secondary" id="btnRaid">Raid</button>
+        </div>
+        <div class="btnRow">
+          <button class="secondary" id="btnPause">Pause</button>
+          <!-- New Match button removed -->
+        </div>
+      </div>
+
+      <div class="panelBox">
+        <h3>Shop</h3>
+        <div id="shop"></div>
+        <div class="help">Buy animals. More animals = more income, but also a bigger target.</div>
+      </div>
+
+      <div class="panelBox">
+        <h3>Base Animals (selected)</h3>
+        <div id="baseAnimals" class="help">Click a base to view.</div>
+      </div>
+
+      <div class="panelBox">
+        <h3>Heist Log</h3>
+        <div id="log" class="log"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Silly Animal Tycoon Heist — single file (no libraries)
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const btnPlay = document.getElementById('btnPlay');
+const btnReset = document.getElementById('btnReset');
+const btnBuy = document.getElementById('btnBuy');
+const btnRaid = document.getElementById('btnRaid');
+const btnPause = document.getElementById('btnPause');
+// New Match button removed
+const selEl = document.getElementById('sel');
+const moneyEl = document.getElementById('money');
+const incomeEl = document.getElementById('income');
+const countEl = document.getElementById('count');
+const shopEl = document.getElementById('shop');
+const baseAnimalsEl = document.getElementById('baseAnimals');
+const logEl = document.getElementById('log');
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const rand = (a,b) => a + Math.random()*(b-a);
+const now = () => performance.now();
+
+// Input (movement + actions)
+const keys = new Set();
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') e.preventDefault();
+  keys.add(e.key);
+});
+document.addEventListener('keyup', (e) => keys.delete(e.key));
+
+function resize(){
+  const maxW = Math.min(960, Math.floor(window.innerWidth * 0.96));
+  const maxH = Math.min(600, Math.floor(window.innerHeight * 0.86));
+  let w = maxW;
+  let h = Math.floor(w * 5/8);
+  if (h > maxH){ h = maxH; w = Math.floor(h * 8/5); }
+  canvas.width = Math.max(520, w);
+  canvas.height = Math.max(320, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// BigInt helpers
+function parseBigIntLoose(s, fallback){
+  try{
+    const digits = String(s ?? '').replace(/[^\d]/g, '');
+    if (!digits) return BigInt(fallback);
+    return BigInt(digits);
+  } catch {
+    return BigInt(fallback);
+  }
+}
+function fmtBigInt(n){
+  const neg = n < 0n;
+  let s = (neg ? (-n) : n).toString();
+  let out = '';
+  for (let i=0;i<s.length;i++){
+    const j = s.length - i;
+    out += s[i];
+    if (j > 1 && (j-1) % 3 === 0) out += ',';
+  }
+  return neg ? '-' + out : out;
+}
+
+// Save
+const LS = {
+  money:'animalHeistMoney',
+  animals:'animalHeistAnimals',
+  month:'animalHeistMonth',
+};
+
+// Start with $999,999,999,999,999 (fresh save)
+const START_MONEY = 999999999999999n;
+
+function monthKey(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+function isChristmasSeason(){
+  // Dec 20 -> Dec 31
+  const d = new Date();
+  return (d.getMonth() + 1) === 12 && d.getDate() >= 20;
+}
+
+function isHalloweenSeason(){
+  // Oct 25 -> Oct 31
+  const d = new Date();
+  return (d.getMonth() + 1) === 10 && d.getDate() >= 25;
+}
+
+function seededRng(seedStr){
+  let seed = 2166136261 >>> 0;
+  for (let i=0;i<seedStr.length;i++){
+    seed ^= seedStr.charCodeAt(i);
+    seed = Math.imul(seed, 16777619) >>> 0;
+  }
+  return () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+}
+
+function loadSave(){
+  const rawM = localStorage.getItem(LS.money);
+  const money = (rawM == null) ? START_MONEY : parseBigIntLoose(rawM, START_MONEY);
+  let animals = [];
+  try{
+    const rawA = localStorage.getItem(LS.animals);
+    animals = rawA ? JSON.parse(rawA) : [];
+    if (!Array.isArray(animals)) animals = [];
+  } catch { animals = []; }
+  // sanitize
+  animals = animals.filter(a => a && typeof a === 'object' && typeof a.name === 'string' && typeof a.income === 'string');
+  return { money, animals };
+}
+
+function save(){
+  localStorage.setItem(LS.money, you.money.toString());
+  localStorage.setItem(LS.animals, JSON.stringify(you.animals.map(a => ({ name:a.name, col:a.col, accent:a.accent, income:a.income.toString() }))));
+}
+
+function resetSave(){
+  localStorage.removeItem(LS.money);
+  localStorage.removeItem(LS.animals);
+}
+
+// Animal generator
+const ADJ_BASE = ['Goofy','Wiggly','Zoomy','Chonky','Spicy','Sleepy','Drippy','Bouncy','Tiny','Mega','Galaxy','Neon','Ninja','Wizard','Robot'];
+const ANM_BASE = ['Shark','Duck','Capybara','Axolotl','Penguin','Frog','Hamster','Otter','Llama','Pigeon','Crab','Giraffe','Bunny','Panda','Koala','Seal','Moth','Cat','BananaCat'];
+
+function getMonthlyNameAdditions(){
+  // Adds 6 new names each month automatically (no server).
+  const mk = monthKey();
+  const r = seededRng(`animalheist-${mk}`);
+  const adjectives = ['Rizz','Sigma','Skib','Mew','Aura','W','L','Turbo','Ultra','Cosmic','Glitch','Candy'];
+  const animals = ['Reindeer','Turtle','Fox','Bee','Octopus','Dino','Dragon','Unicorn','Sloth','Moose','Parrot','Blob'];
+  const extraAdj = [];
+  const extraAnm = [];
+  for (let i=0;i<6;i++){
+    extraAdj.push(adjectives[Math.floor(r()*adjectives.length)]);
+    extraAnm.push(animals[Math.floor(r()*animals.length)]);
+  }
+  return { extraAdj, extraAnm };
+}
+
+function getNamePools(){
+  const { extraAdj, extraAnm } = getMonthlyNameAdditions();
+  const adjs = ADJ_BASE.concat(extraAdj);
+  const anms = ANM_BASE.concat(extraAnm);
+  if (isChristmasSeason()){
+    adjs.push('Christmas');
+    anms.push('SantaReindeer');
+    anms.push('CandyCaneDuck');
+  }
+  if (isHalloweenSeason()){
+    adjs.push('Spooky');
+    anms.push('PumpkinCat');
+    anms.push('GhostShark');
+  }
+  return { adjs, anms };
+}
+function randomColor(){
+  const h = Math.floor(rand(0,360));
+  return { col:`hsl(${h} 90% 55%)`, accent:`hsl(${(h+70)%360} 95% 58%)` };
+}
+
+function randBigInt(lo, hi){
+  // inclusive lo..hi, using JS float as source
+  if (hi <= lo) return lo;
+  const span = Number(hi - lo);
+  if (!Number.isFinite(span) || span <= 0) return lo;
+  const x = Math.floor(rand(0, span + 1));
+  return lo + BigInt(x);
+}
+
+function randomIncome(){
+  // Income 1..100,000,000,000,000 with a wide distribution (many low, some huge).
+  const roll = Math.random();
+  if (roll < 0.65){
+    return randBigInt(1n, 200n);                 // low tier
+  } else if (roll < 0.90){
+    return randBigInt(200n, 20000n);             // starter/mid
+  } else if (roll < 0.985){
+    return randBigInt(20000n, 500000000n);       // big
+  } else if (roll < 0.998){
+    return randBigInt(500000000n, 2000000000000n); // huge
+  }
+  return randBigInt(2000000000000n, 100000000000000n); // ultra
+}
+
+function randomAnimal(){
+  const pools = getNamePools();
+  const a = pools.adjs[Math.floor(rand(0, pools.adjs.length))];
+  const b = pools.anms[Math.floor(rand(0, pools.anms.length))];
+  const { col, accent } = randomColor();
+  // income 1..100,000,000,000,000
+  const income2 = randomIncome();
+  const name = `${a} ${b}`;
+  return { name, col, accent, income: income2 };
+}
+
+function animalPrice(income){
+  // price grows with income
+  // approx: 40x per-second income, but at least 100
+  const base = income * 40n;
+  return base < 100n ? 100n : base;
+}
+
+function animalPower(income){
+  // used for raid success chance
+  return income;
+}
+
+// Players/bases
+function makeBase(name, col, isYou){
+  return {
+    name, col,
+    isYou,
+    x: rand(80, 920),
+    y: rand(80, 520),
+    r: 26,
+    money: isYou ? 0n : parseBigIntLoose('150000000', 150000000n),
+    animals: [],
+    incomePerSec: 0n,
+    raidCd: 0,
+    shieldCd: 0,
+  };
+}
+
+function recomputeIncome(b){
+  let sum = 0n;
+  for (const a of b.animals){
+    sum += a.income;
+  }
+  b.incomePerSec = sum;
+}
+
+// You-guy (walk around the map)
+const player = {
+  x: 0,
+  y: 0,
+  vx: 0,
+  vy: 0,
+  r: 14,
+};
+
+function setPlayerSpawn(){
+  if (!you) return;
+  player.x = you.x;
+  player.y = you.y + 55;
+  player.vx = 0;
+  player.vy = 0;
+}
+
+function log(who, text, kind){
+  const div = document.createElement('div');
+  div.className = 'logLine';
+  const whoSpan = document.createElement('span');
+  whoSpan.className = 'who' + (kind === 'sys' ? ' sys' : '');
+  whoSpan.textContent = who;
+  const tSpan = document.createElement('span');
+  tSpan.textContent = `: ${text}`;
+  div.appendChild(whoSpan);
+  div.appendChild(tSpan);
+  // prepend (safe)
+  if (logEl.firstChild) logEl.insertBefore(div, logEl.firstChild);
+  else logEl.appendChild(div);
+}
+
+let running = false;
+let paused = false;
+let lastT = 0;
+let coinCarryMs = 0; // ms accumulator for exact BigInt income
+
+let bases = [];
+let you = null;
+let selectedBaseIdx = 0;
+let nearStallIdx = -1;
+let nearBaseIdx = -1;
+
+function newMatch(keepSave){
+  logEl.innerHTML = '';
+  const saveData = loadSave();
+  bases = [];
+  you = makeBase('You', '#ffffff', true);
+  you.money = keepSave ? saveData.money : START_MONEY;
+  you.animals = keepSave ? saveData.animals.map(a => ({ name:a.name, col:a.col, accent:a.accent, income: parseBigIntLoose(a.income, 1n) })) : [];
+  recomputeIncome(you);
+  bases.push(you);
+
+  const aiNames = ['AI Nova','AI Zig','AI Mimi','AI Orion','AI Pip','AI Roo'];
+  const aiCols = ['#22ffb6','#ff4d6d','#ffd84d','#5bf7ff','#a2ff4d','#be00be'];
+  for (let i=0;i<6;i++){
+    const b = makeBase(aiNames[i], aiCols[i], false);
+    // start with 2-4 animals
+    const n = 2 + Math.floor(rand(0,3));
+    for (let k=0;k<n;k++) b.animals.push(randomAnimal());
+    recomputeIncome(b);
+    bases.push(b);
+  }
+
+  // spread positions with quick relax
+  for (let it=0;it<180;it++){
+    for (let i=0;i<bases.length;i++){
+      for (let j=i+1;j<bases.length;j++){
+        const a = bases[i], b = bases[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const d = Math.hypot(dx,dy) || 1;
+        const minD = 90;
+        if (d < minD){
+          const push = (minD - d) * 0.25;
+          a.x = clamp(a.x + (dx/d)*push, 50, 950);
+          a.y = clamp(a.y + (dy/d)*push, 50, 550);
+          b.x = clamp(b.x - (dx/d)*push, 50, 950);
+          b.y = clamp(b.y - (dy/d)*push, 50, 550);
+        }
+      }
+    }
+  }
+
+  selectedBaseIdx = 0;
+  setPlayerSpawn();
+  coinCarryMs = 0;
+  lastT = 0;
+  paused = false;
+  running = true;
+  overlay.classList.add('hidden');
+  log('SYSTEM', 'New match! Buy animals and raid bases to steal.', 'sys');
+  updateShop();
+  updateUI();
+}
+
+// Shop offers
+let offers = [];
+const stalls = []; // {x,y,w,h,index}
+
+function rerollOffers(){
+  offers = [];
+  // Guaranteed cheap offer so starting money ($12,345) can buy at least one.
+  // Requested: "just to buy 1324"
+  offers.push({
+    name: `Starter Silly Animal (${monthKey()})`,
+    col: '#ffd84d',
+    accent: '#5bf7ff',
+    income: 33n,
+    price: 1324n
+  });
+  for (let i=1;i<3;i++){
+    const a = randomAnimal();
+    const price = animalPrice(a.income);
+    offers.push({ ...a, price });
+  }
+}
+
+function buyOffer(index){
+  const o = offers[index];
+  if (!o) return false;
+  if (you.money < o.price) return false;
+  you.money -= o.price;
+  you.animals.push({ name:o.name, col:o.col, accent:o.accent, income:o.income });
+  recomputeIncome(you);
+  save();
+  log('You', `bought ${o.name} (+$${fmtBigInt(o.income)}/s).`, 'normal');
+  updateShop();
+  updateUI();
+  return true;
+}
+
+function updateShop(){
+  rerollOffers();
+  shopEl.innerHTML = '';
+  for (let i=0;i<offers.length;i++){
+    const o = offers[i];
+    const row = document.createElement('div');
+    row.className = 'shopItem';
+    const left = document.createElement('div');
+    left.innerHTML = `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${o.col};box-shadow:0 0 14px ${o.accent};vertical-align:middle;margin-right:8px"></span>
+      ${o.name}
+      <span class="tag">$${fmtBigInt(o.price)}</span>
+      <small>Income: <b>$${fmtBigInt(o.income)}</b>/sec</small>`;
+    const btn = document.createElement('button');
+    btn.className = 'secondary tinyBtn';
+    btn.textContent = 'Buy';
+    btn.disabled = you.money < o.price;
+    btn.addEventListener('click', () => {
+      buyOffer(i);
+    });
+    row.appendChild(left);
+    row.appendChild(btn);
+    shopEl.appendChild(row);
+  }
+}
+
+function basePower(b){
+  // power depends on animal incomes (and count)
+  return b.incomePerSec + BigInt(b.animals.length) * 1000000000n;
+}
+
+function raid(attackerIdx, defenderIdx){
+  const atk = bases[attackerIdx];
+  const def = bases[defenderIdx];
+  if (!atk || !def) return;
+  if (attackerIdx === defenderIdx) return;
+  if (atk.raidCd > 0) return;
+  if (def.animals.length === 0){
+    log(atk.name, `raided ${def.name} but they have no animals!`, 'normal');
+    atk.raidCd = 3.5;
+    return;
+  }
+
+  const ap = basePower(atk);
+  const dp = basePower(def);
+  // BigInt ratio (no float overflow)
+  const scale = 10000n;
+  const roll = BigInt(Math.floor(rand(0, 10000)));
+  const thresh = (ap * scale) / (ap + dp);
+  const success = roll < thresh;
+
+  if (success){
+    const idx = Math.floor(rand(0, def.animals.length));
+    const stolen = def.animals.splice(idx, 1)[0];
+    atk.animals.push(stolen);
+    recomputeIncome(def);
+    recomputeIncome(atk);
+    atk.raidCd = 4.5;
+    def.shieldCd = 1.2;
+    const isAboutYou = (attackerIdx === 0) || (defenderIdx === 0);
+    log(atk.name, `stole ${stolen.name} from ${def.name}!`, isAboutYou ? 'sys' : 'normal');
+    if (attackerIdx === 0 || defenderIdx === 0) save();
+  } else {
+    atk.raidCd = 4.0;
+    const isAboutYou = (attackerIdx === 0) || (defenderIdx === 0);
+    log(atk.name, `raided ${def.name} but FAILED.`, isAboutYou ? 'sys' : 'normal');
+  }
+}
+
+function updateSelectedBasePanel(){
+  const b = bases[selectedBaseIdx];
+  if (!b){ baseAnimalsEl.textContent = '—'; return; }
+  const lines = [];
+  lines.push(`<div class="help"><b>${b.name}</b> • Animals: <b>${b.animals.length}</b> • Income: <b>$${fmtBigInt(b.incomePerSec)}</b>/s</div>`);
+  const show = b.animals.slice().sort((a,b) => (a.name > b.name ? 1 : -1)).slice(0, 10);
+  for (const a of show){
+    lines.push(`<div class="help">- ${a.name} <span class="tag">$${fmtBigInt(a.income)}/s</span></div>`);
+  }
+  if (b.animals.length > 10) lines.push(`<div class="help">...and ${b.animals.length - 10} more</div>`);
+  baseAnimalsEl.innerHTML = lines.join('');
+}
+
+function updateUI(){
+  const sel = bases[selectedBaseIdx] || you;
+  selEl.textContent = sel.name;
+  moneyEl.textContent = `$${fmtBigInt(you.money)}`;
+  incomeEl.textContent = `$${fmtBigInt(you.incomePerSec)}/s`;
+  countEl.textContent = String(you.animals.length);
+  btnBuy.disabled = false;
+  btnRaid.disabled = selectedBaseIdx === 0 || you.raidCd > 0;
+  btnPause.textContent = paused ? 'Resume' : 'Pause';
+  updateSelectedBasePanel();
+  // refresh shop buy buttons
+  for (const btn of shopEl.querySelectorAll('button')){
+    // noop; shop rerolls often anyway
+  }
+}
+
+btnPlay.addEventListener('click', () => newMatch(true));
+btnReset.addEventListener('click', () => {
+  if (!confirm('Reset your save?')) return;
+  resetSave();
+  location.reload();
+});
+// (no New Match button)
+btnPause.addEventListener('click', () => { paused = !paused; updateUI(); });
+btnBuy.addEventListener('click', () => updateShop());
+btnRaid.addEventListener('click', () => {
+  if (selectedBaseIdx === 0) return;
+  raid(0, selectedBaseIdx);
+  updateUI();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'p' || e.key === 'P'){ paused = !paused; updateUI(); }
+  if (e.key === 'b' || e.key === 'B'){ updateShop(); updateUI(); }
+  if (e.key === 'r' || e.key === 'R'){
+    // raid selected base (best used when you're standing near that base)
+    if (selectedBaseIdx !== 0) raid(0, selectedBaseIdx);
+    updateUI();
+  }
+  if (e.key === 'e' || e.key === 'E'){
+    // buy from a stall if you're near it
+    if (nearStallIdx >= 0) buyOffer(nearStallIdx);
+  }
+});
+
+// Mouse selection
+canvas.addEventListener('pointerdown', (e) => {
+  if (!running) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  // Find nearest base
+  let best = -1;
+  let bestD = Infinity;
+  for (let i=0;i<bases.length;i++){
+    const b = bases[i];
+    const dx = x - b.x, dy = y - b.y;
+    const d = dx*dx + dy*dy;
+    if (d < bestD){ bestD = d; best = i; }
+  }
+  if (best >= 0 && bestD < (70*70)){
+    selectedBaseIdx = best;
+    updateUI();
+  }
+});
+
+// AI brain
+function aiTick(dt){
+  for (let i=1;i<bases.length;i++){
+    const ai = bases[i];
+    ai.raidCd = Math.max(0, ai.raidCd - dt);
+    ai.shieldCd = Math.max(0, ai.shieldCd - dt);
+    // buy if rich enough sometimes
+    if (Math.random() < dt * 0.35){
+      const a = randomAnimal();
+      const price = animalPrice(a.income);
+      if (ai.money > price && ai.animals.length < 90){
+        ai.money -= price;
+        ai.animals.push(a);
+        recomputeIncome(ai);
+        if (Math.random() < 0.10) log(ai.name, `bought ${a.name}.`, 'normal');
+      }
+    }
+    // raid logic: raid the richest target (sometimes you)
+    if (ai.raidCd <= 0 && Math.random() < dt * 0.18){
+      let targetIdx = 0;
+      let bestScore = -1n;
+      for (let j=0;j<bases.length;j++){
+        if (j === i) continue;
+        const t = bases[j];
+        const score = basePower(t);
+        if (score > bestScore){ bestScore = score; targetIdx = j; }
+      }
+      // if target has no animals, skip
+      if (bases[targetIdx].animals.length > 0){
+        raid(i, targetIdx);
+        // if AI stole from you, update save
+        if (targetIdx === 0 || i === 0) save();
+      }
+    }
+  }
+}
+
+function updatePlayer(dt){
+  if (!you) return;
+  const left = keys.has('ArrowLeft') || keys.has('a') || keys.has('A');
+  const right = keys.has('ArrowRight') || keys.has('d') || keys.has('D');
+  const up = keys.has('ArrowUp') || keys.has('w') || keys.has('W');
+  const down = keys.has('ArrowDown') || keys.has('s') || keys.has('S');
+  let ix = (left ? -1 : 0) + (right ? 1 : 0);
+  let iy = (up ? -1 : 0) + (down ? 1 : 0);
+  const im = Math.hypot(ix, iy);
+  if (im > 1){ ix /= im; iy /= im; }
+
+  const accel = 1400;
+  player.vx += ix * accel * dt;
+  player.vy += iy * accel * dt;
+  player.vx *= Math.pow(0.84, dt*60);
+  player.vy *= Math.pow(0.84, dt*60);
+  player.x += player.vx * dt;
+  player.y += player.vy * dt;
+
+  player.x = clamp(player.x, player.r + 10, canvas.width - player.r - 10);
+  player.y = clamp(player.y, player.r + 10, canvas.height - player.r - 10);
+
+  // If you're close to a base, auto-select it (so "go to them" works)
+  nearBaseIdx = -1;
+  for (let i=0;i<bases.length;i++){
+    const b = bases[i];
+    const dx = player.x - b.x, dy = player.y - b.y;
+    if (dx*dx + dy*dy < (b.r + 50)*(b.r + 50)){
+      nearBaseIdx = i;
+      selectedBaseIdx = i;
+      break;
+    }
+  }
+}
+
+function incomeTick(dt){
+  const ms = Math.max(0, Math.floor(dt * 1000));
+  if (ms <= 0) return;
+  coinCarryMs += ms;
+  // process in 50ms chunks for smoother updates
+  const chunk = 50;
+  while (coinCarryMs >= chunk){
+    coinCarryMs -= chunk;
+    const frac = BigInt(chunk) * 1n; // ms
+    for (const b of bases){
+      const add = b.incomePerSec * frac / 1000n;
+      b.money += add;
+    }
+  }
+}
+
+function layoutStalls(){
+  stalls.length = 0;
+  const n = offers.length;
+  const y = canvas.height - 70;
+  const w = 140;
+  const h = 64;
+  const gap = 18;
+  const totalW = n*w + (n-1)*gap;
+  let x0 = canvas.width*0.5 - totalW/2;
+  for (let i=0;i<n;i++){
+    stalls.push({ x: x0 + i*(w+gap), y, w, h, index:i });
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let x=0;x<canvas.width;x+=60){
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+  }
+  for (let y=0;y<canvas.height;y+=60){
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+  }
+
+  // draw lines between bases (heist network)
+  ctx.globalAlpha = 0.35;
+  for (let i=0;i<bases.length;i++){
+    for (let j=i+1;j<bases.length;j++){
+      const a = bases[i], b = bases[j];
+      ctx.strokeStyle = 'rgba(91,247,255,0.10)';
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // bases
+  for (let i=0;i<bases.length;i++){
+    const b = bases[i];
+    const selected = i === selectedBaseIdx;
+    const glow = b.isYou ? '#ffffff' : b.col;
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = selected ? 22 : 14;
+    ctx.fillStyle = b.isYou ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r + (selected ? 6 : 0), 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // core
+    ctx.fillStyle = b.col;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+    ctx.fill();
+
+    // animal dots (count)
+    ctx.fillStyle = 'rgba(0,0,0,0.30)';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r*0.55, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.86)';
+    ctx.font = '900 14px Verdana';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(b.animals.length), b.x, b.y + 1);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+
+    // name
+    ctx.fillStyle = 'rgba(255,255,255,0.80)';
+    ctx.font = '900 12px Verdana';
+    ctx.textAlign = 'center';
+    ctx.fillText(b.name, b.x, b.y - b.r - 12);
+    ctx.textAlign = 'left';
+  }
+
+  // stalls (line of silly animals you can walk to)
+  layoutStalls();
+  nearStallIdx = -1;
+  for (const s of stalls){
+    const o = offers[s.index];
+    if (!o) continue;
+    // proximity check
+    const cx = s.x + s.w/2, cy = s.y + s.h/2;
+    const dx = player.x - cx, dy = player.y - cy;
+    const near = (dx*dx + dy*dy) < (70*70);
+    if (near) nearStallIdx = s.index;
+
+    ctx.shadowColor = o.accent;
+    ctx.shadowBlur = near ? 18 : 10;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    roundRect(s.x, s.y, s.w, s.h, 14, true, false);
+    ctx.shadowBlur = 0;
+
+    // animal orb
+    ctx.shadowColor = o.accent;
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = o.col;
+    ctx.beginPath();
+    ctx.arc(s.x + 24, s.y + s.h/2, 12, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // price + income
+    ctx.fillStyle = 'rgba(255,255,255,0.90)';
+    ctx.font = '900 12px Verdana';
+    ctx.fillText(`$${fmtBigInt(o.price)}`, s.x + 44, s.y + 26);
+    ctx.fillStyle = 'rgba(242,246,255,0.75)';
+    ctx.font = '900 11px Verdana';
+    ctx.fillText(`+${fmtBigInt(o.income)}/s`, s.x + 44, s.y + 46);
+
+    // buy hint
+    if (near){
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(s.x, s.y - 26, s.w, 22);
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.font = '900 12px Verdana';
+      ctx.fillText(you.money >= o.price ? 'Press E to BUY' : 'Not enough $', s.x + 10, s.y - 10);
+    }
+  }
+
+  // your guy
+  ctx.shadowColor = '#ffffff';
+  ctx.shadowBlur = 16;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // legs
+  ctx.fillStyle = 'rgba(0,0,0,0.30)';
+  ctx.beginPath();
+  ctx.arc(player.x - 6, player.y + 14, 4, 0, Math.PI*2);
+  ctx.arc(player.x + 6, player.y + 14, 4, 0, Math.PI*2);
+  ctx.fill();
+  // name
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = '900 12px Verdana';
+  ctx.textAlign = 'center';
+  ctx.fillText('YOU', player.x, player.y - 22);
+  ctx.textAlign = 'left';
+
+  // hint
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fillRect(10, 10, Math.min(620, canvas.width-20), 30);
+  ctx.fillStyle = 'rgba(255,255,255,0.90)';
+  ctx.font = '900 14px Verdana, "Comic Sans MS", sans-serif';
+  const sel = bases[selectedBaseIdx];
+  const selInfo = sel ? `${sel.name} animals=${sel.animals.length} income=$${fmtBigInt(sel.incomePerSec)}/s` : '';
+  const raidHint = (selectedBaseIdx !== 0 && nearBaseIdx === selectedBaseIdx) ? ' • Press R to RAID (near base)' : '';
+  ctx.fillText(`Walk to stalls + press E to buy • Walk to bases • ${selInfo}${raidHint}`, 18, 31);
+}
+
+function roundRect(x,y,w,h,r, fill, stroke){
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y);
+  ctx.lineTo(x+w-rr, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
+  ctx.lineTo(x+w, y+h-rr);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+  ctx.lineTo(x+rr, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
+  ctx.lineTo(x, y+rr);
+  ctx.quadraticCurveTo(x, y, x+rr, y);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
+}
+
+function frame(t){
+  requestAnimationFrame(frame);
+  if (!running){ draw(); return; }
+  if (!lastT) lastT = t;
+  const dt = Math.min(0.05, (t - lastT) / 1000);
+  lastT = t;
+  if (!paused){
+    // cooldowns
+    for (const b of bases){
+      b.raidCd = Math.max(0, b.raidCd - dt);
+    }
+    updatePlayer(dt);
+    incomeTick(dt);
+    aiTick(dt);
+  }
+  updateUI();
+  draw();
+}
+requestAnimationFrame(frame);
+
+// boot
+overlay.classList.remove('hidden');
+</script>
+</body>
+</html>
+
+

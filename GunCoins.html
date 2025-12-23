@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Gun Coins Arena</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.08);
+      --panel2:rgba(255,255,255,0.04);
+      --border:rgba(255,255,255,0.14);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.75);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:
+        radial-gradient(900px 700px at 50% 25%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      color:var(--text);
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      overflow:hidden;
+      touch-action:none;
+      padding:18px 12px;
+    }
+    .wrap{
+      width:min(1100px, 96vw);
+      display:grid;
+      grid-template-columns: 1fr 340px;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
+    .card{
+      position:relative;
+      border-radius:16px;
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      box-shadow:0 24px 80px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      background:radial-gradient(1200px 700px at 50% 25%, #18244f 0%, #0a0d20 55%, #070914 100%);
+      touch-action:none;
+    }
+    .side{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .hud{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:900;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      min-width:170px;
+      text-align:center;
+      font-weight:900;
+    }
+    .btnRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    button{
+      border:0;
+      border-radius:14px;
+      padding:12px 12px;
+      cursor:pointer;
+      font: inherit;
+      font-weight:900;
+      color:#071019;
+      background:linear-gradient(45deg, var(--accent), #5bf7ff);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      transition: transform .08s ease;
+      user-select:none;
+      touch-action: manipulation;
+    }
+    button:active{transform:scale(0.98)}
+    button.secondary{background:linear-gradient(45deg, var(--gold), #ffae4d)}
+    button.danger{background:linear-gradient(45deg, var(--danger), #ffae4d)}
+    .help{
+      font-size:13px;
+      line-height:1.4;
+      color:var(--muted);
+    }
+
+    .controls{
+      display:none;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    .controls button{ padding:14px 10px; font-size:18px; border-radius:14px; }
+    @media (max-width: 980px){ .controls{display:grid} }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.82);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:16px;
+      z-index:10;
+    }
+    .overlay.hidden{display:none}
+    .panel{
+      width:min(760px, 92%);
+      background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(0,0,0,0.55));
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 30px 110px rgba(0,0,0,0.55);
+      text-align:center;
+    }
+    .panel h1{
+      margin:0 0 8px 0;
+      font-size:34px;
+      letter-spacing:0.6px;
+      color:#eaffff;
+      text-shadow:0 0 18px rgba(34,255,182,0.30);
+    }
+    .panel p{ margin: 8px 0 14px 0; font-size:14px; color:var(--muted); }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.35);
+      font-weight:900;
+      margin:0 2px;
+      color:var(--text);
+    }
+    .shop{
+      margin-top:12px;
+      text-align:left;
+      background:rgba(0,0,0,0.22);
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:14px;
+      padding:12px;
+    }
+    .shop h3{
+      margin:0 0 10px 0;
+      font-size:14px;
+      color:#eaffff;
+      letter-spacing:0.4px;
+    }
+    .shopItem{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.22);
+      margin-bottom:10px;
+    }
+    .gunName{ font-weight:900; font-size:14px; }
+    .gunDesc{ margin-top:4px; font-size:11px; color:rgba(242,246,255,0.76); font-weight:800; line-height:1.25; }
+    .tag{
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.30);
+      font-size:11px;
+      font-weight:900;
+      color:rgba(242,246,255,0.92);
+      margin-left:8px;
+      white-space:nowrap;
+    }
+    .tag.locked{ color:rgba(255,77,109,0.95); }
+    .tag.owned{ color:rgba(34,255,182,0.95); }
+    .tinyBtn{
+      padding:8px 10px;
+      border-radius:12px;
+      font-weight:900;
+      min-width:110px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c" width="960" height="600"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1 id="ovTitle">Gun Coins Arena</h1>
+          <p id="ovText">Defeat blobs, collect coins, and buy new guns!</p>
+          <p>
+            Move: <span class="kbd">WASD</span>/<span class="kbd">Arrows</span> • Shoot: <span class="kbd">Space</span> (hold) / <span class="kbd">Hold Mouse</span> / <span class="kbd">Touch</span><br/>
+            Shop: <span class="kbd">G</span> • Pause: <span class="kbd">P</span>
+          </p>
+          <div class="btnRow" style="margin-top:10px">
+            <button id="btnPlay">PLAY</button>
+            <button class="secondary" id="btnShop">SHOP</button>
+          </div>
+          <div id="homeOnly" class="help" style="margin-top:10px">
+            - Collect coins from enemies.<br/>
+            - Buy and equip new guns.<br/>
+            - Survive as long as you can!
+          </div>
+
+          <div id="shopOverlay" style="display:none;margin-top:12px;text-align:left">
+            <div class="row" style="margin-bottom:10px">
+              <span style="font-weight:900">Your Coins</span>
+              <span class="pill" id="shopCoins" style="min-width:110px">0</span>
+            </div>
+            <div id="shopOverlayList"></div>
+            <div class="btnRow" style="margin-top:12px">
+              <button class="secondary" id="btnBackHome">BACK</button>
+              <button id="btnPlayFromShop">PLAY</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card side">
+      <div class="hud">
+        <div class="row"><span>Score</span><span class="pill" id="score">0</span></div>
+        <div class="row"><span>Coins</span><span class="pill" id="coins">0</span></div>
+        <div class="row"><span>HP</span><span class="pill" id="hp">5</span></div>
+        <div class="row"><span>Gun</span><span class="pill" id="gun">Pistol</span></div>
+        <div class="btnRow">
+          <button class="secondary" id="btnPause">Pause</button>
+          <button class="danger" id="btnRestart">Restart</button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="btnLeft">←</button>
+        <button id="btnShoot" class="secondary">SHOOT</button>
+        <button id="btnRight">→</button>
+        <button id="btnUp">↑</button>
+        <button id="btnShop2" class="secondary">SHOP</button>
+        <button id="btnDown">↓</button>
+      </div>
+
+      <div class="help">
+        Tip: hold shoot and circle around enemies.
+      </div>
+    </div>
+  </div>
+
+<script>
+// Gun Coins Arena (simple top-down shooter) — single file
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const homeOnlyEl = document.getElementById('homeOnly');
+const shopOverlayEl = document.getElementById('shopOverlay');
+const shopOverlayList = document.getElementById('shopOverlayList');
+const shopCoinsEl = document.getElementById('shopCoins');
+
+const btnPlay = document.getElementById('btnPlay');
+const btnShop = document.getElementById('btnShop');
+const btnBackHome = document.getElementById('btnBackHome');
+const btnPlayFromShop = document.getElementById('btnPlayFromShop');
+
+const scoreEl = document.getElementById('score');
+const coinsEl = document.getElementById('coins');
+const hpEl = document.getElementById('hp');
+const gunEl = document.getElementById('gun');
+const btnPause = document.getElementById('btnPause');
+const btnRestart = document.getElementById('btnRestart');
+
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+const btnUp = document.getElementById('btnUp');
+const btnDown = document.getElementById('btnDown');
+const btnShoot = document.getElementById('btnShoot');
+const btnShop2 = document.getElementById('btnShop2');
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const rand = (a,b) => a + Math.random()*(b-a);
+const now = () => performance.now();
+
+function resize(){
+  const maxW = Math.min(960, Math.floor(window.innerWidth * 0.96));
+  const maxH = Math.min(600, Math.floor(window.innerHeight * 0.86));
+  let w = maxW;
+  let h = Math.floor(w * 5/8);
+  if (h > maxH){ h = maxH; w = Math.floor(h * 8/5); }
+  canvas.width = Math.max(520, w);
+  canvas.height = Math.max(320, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Persistent coins + guns
+const LS_COINS = 'gunCoinsCoins';
+const LS_OWNED = 'gunCoinsOwned';
+const LS_SEL = 'gunCoinsSelected';
+let coins = Number(localStorage.getItem(LS_COINS) || '0');
+let owned = (() => {
+  try {
+    const raw = localStorage.getItem(LS_OWNED);
+    const arr = raw ? JSON.parse(raw) : ['pistol'];
+    return new Set(Array.isArray(arr) ? arr : ['pistol']);
+  } catch {
+    return new Set(['pistol']);
+  }
+})();
+let selectedGun = localStorage.getItem(LS_SEL) || 'pistol';
+if (!owned.has(selectedGun)) selectedGun = 'pistol';
+
+function save(){
+  localStorage.setItem(LS_COINS, String(coins));
+  localStorage.setItem(LS_OWNED, JSON.stringify(Array.from(owned)));
+  localStorage.setItem(LS_SEL, selectedGun);
+}
+
+const GUNS = [
+  { id:'pistol', name:'Pistol', cost:0, rate:6, dmg:1, speed:520, spread:0, pellets:1 },
+  { id:'shotgun', name:'Shotgun', cost:80, rate:1.8, dmg:1, speed:480, spread:0.25, pellets:6 },
+  { id:'laser', name:'Laser', cost:140, rate:10, dmg:1, speed:760, spread:0.02, pellets:1 },
+  { id:'rocket', name:'Rocket', cost:220, rate:1.2, dmg:4, speed:380, spread:0.03, pellets:1 },
+];
+function gunById(id){ return GUNS.find(g => g.id === id) || GUNS[0]; }
+
+function renderShop(){
+  shopCoinsEl.textContent = String(coins);
+  renderShopInto(shopOverlayList);
+}
+function renderShopInto(container){
+  container.innerHTML = '';
+  for (const g of GUNS){
+    const isOwned = owned.has(g.id);
+    const isSelected = selectedGun === g.id;
+    const row = document.createElement('div');
+    row.className = 'shopItem';
+    const left = document.createElement('div');
+    left.innerHTML = `
+      <div class="gunName">${g.name}
+        <span class="tag ${isOwned ? 'owned' : 'locked'}">${isOwned ? (isSelected ? 'EQUIPPED' : 'OWNED') : (g.cost + ' COINS')}</span>
+      </div>
+      <div class="gunDesc">Rate: ${g.rate}/s • Damage: ${g.dmg} • Spread: ${g.spread.toFixed(2)} • Pellets: ${g.pellets}</div>
+    `;
+    const btn = document.createElement('button');
+    btn.className = 'secondary tinyBtn';
+    if (!isOwned){
+      btn.textContent = 'Buy';
+      btn.disabled = coins < g.cost;
+      btn.addEventListener('click', () => {
+        if (coins < g.cost) return;
+        coins -= g.cost;
+        owned.add(g.id);
+        selectedGun = g.id;
+        save();
+        renderShop();
+        updateHUD();
+      });
+    } else {
+      btn.textContent = isSelected ? 'Using' : 'Equip';
+      btn.disabled = isSelected;
+      btn.addEventListener('click', () => {
+        selectedGun = g.id;
+        save();
+        renderShop();
+        updateHUD();
+      });
+    }
+    row.appendChild(left);
+    row.appendChild(btn);
+    container.appendChild(row);
+  }
+}
+
+// Game state
+let running = false;
+let paused = false;
+let gameOver = false;
+let lastT = 0;
+
+let score = 0;
+const player = { x:0, y:0, r:16, vx:0, vy:0, hp:5, inv:0, fireCd:0 };
+const bullets = []; // {x,y,vx,vy,r,dmg,color,life,isRocket}
+const enemies = []; // {x,y,vx,vy,r,hp,speed}
+const drops = [];   // coins {x,y,r,vy}
+const particles = [];
+
+function resetRun(){
+  score = 0;
+  player.x = canvas.width*0.5;
+  player.y = canvas.height*0.6;
+  player.vx = 0;
+  player.vy = 0;
+  player.hp = 5;
+  player.inv = 0;
+  player.fireCd = 0;
+  bullets.length = 0;
+  enemies.length = 0;
+  drops.length = 0;
+  particles.length = 0;
+  spawnWave(4);
+  updateHUD();
+}
+
+function spawnWave(n){
+  for (let i=0;i<n;i++){
+    const edge = Math.floor(rand(0,4));
+    let x=0,y=0;
+    if (edge===0){ x = -30; y = rand(0, canvas.height); }
+    if (edge===1){ x = canvas.width+30; y = rand(0, canvas.height); }
+    if (edge===2){ x = rand(0, canvas.width); y = -30; }
+    if (edge===3){ x = rand(0, canvas.width); y = canvas.height+30; }
+    const r = rand(16, 26);
+    enemies.push({ x, y, vx:0, vy:0, r, hp: Math.ceil(r/10)+1, speed: rand(60, 95) });
+  }
+}
+
+function burst(x,y,col,n=16){
+  for (let i=0;i<n;i++){
+    particles.push({ x,y, vx: rand(-260,260), vy: rand(-260,260), life: rand(0.25,0.8), r: rand(2,5), col });
+  }
+}
+
+// Input
+const keys = new Set();
+let spaceShootDown = false;
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    spaceShootDown = true; // hold space to keep shooting
+  }
+  keys.add(e.key);
+  if (e.key === 'p' || e.key === 'P') togglePause();
+  if (e.key === 'g' || e.key === 'G') openShop();
+});
+document.addEventListener('keyup', (e) => {
+  if (e.code === 'Space') spaceShootDown = false;
+  keys.delete(e.key);
+});
+
+let pointer = { active:false, x:0, y:0, shoot:false };
+function setPointer(e){
+  const r = canvas.getBoundingClientRect();
+  pointer.x = (e.clientX - r.left) * (canvas.width / r.width);
+  pointer.y = (e.clientY - r.top) * (canvas.height / r.height);
+}
+canvas.addEventListener('pointerdown', (e) => { pointer.active=true; pointer.shoot=true; setPointer(e); });
+canvas.addEventListener('pointermove', (e) => { if (pointer.active) setPointer(e); });
+window.addEventListener('pointerup', () => { pointer.active=false; pointer.shoot=false; });
+
+const hold = { left:false,right:false,up:false,down:false,shoot:false };
+function bindHold(el, which){
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); hold[which]=true; });
+  window.addEventListener('pointerup', () => { hold[which]=false; });
+  el.addEventListener('pointerleave', () => { hold[which]=false; });
+}
+bindHold(btnLeft,'left');
+bindHold(btnRight,'right');
+bindHold(btnUp,'up');
+bindHold(btnDown,'down');
+bindHold(btnShoot,'shoot');
+btnShop2.addEventListener('click', openShop);
+
+btnPlay.addEventListener('click', start);
+btnPlayFromShop.addEventListener('click', start);
+btnShop.addEventListener('click', openShop);
+btnBackHome.addEventListener('click', closeShop);
+btnPause.addEventListener('click', togglePause);
+btnRestart.addEventListener('click', start);
+
+function start(){
+  resetRun();
+  running = true;
+  paused = false;
+  gameOver = false;
+  lastT = 0;
+  overlay.classList.add('hidden');
+}
+
+function end(){
+  gameOver = true;
+  paused = false;
+  overlay.classList.remove('hidden');
+  homeOnlyEl.style.display = 'block';
+  shopOverlayEl.style.display = 'none';
+  btnPlay.textContent = 'Play Again';
+}
+
+function togglePause(){
+  if (!running || gameOver) return;
+  paused = !paused;
+  btnPause.textContent = paused ? 'Resume' : 'Pause';
+}
+
+function openShop(){
+  overlay.classList.remove('hidden');
+  homeOnlyEl.style.display = 'none';
+  shopOverlayEl.style.display = 'block';
+  renderShop();
+}
+function closeShop(){
+  shopOverlayEl.style.display = 'none';
+  homeOnlyEl.style.display = 'block';
+}
+
+function updateHUD(){
+  coinsEl.textContent = String(coins);
+  shopCoinsEl.textContent = String(coins);
+  scoreEl.textContent = String(score);
+  hpEl.textContent = String(player.hp);
+  gunEl.textContent = gunById(selectedGun).name;
+}
+
+function shootAt(tx, ty){
+  const g = gunById(selectedGun);
+  if (player.fireCd > 0) return;
+  player.fireCd = 1 / g.rate;
+  const dx = tx - player.x;
+  const dy = ty - player.y;
+  const m = Math.hypot(dx,dy) || 1;
+  const baseAng = Math.atan2(dy, dx);
+  for (let i=0;i<g.pellets;i++){
+    const a = baseAng + rand(-g.spread, g.spread);
+    const vx = Math.cos(a) * g.speed;
+    const vy = Math.sin(a) * g.speed;
+    bullets.push({
+      x: player.x + Math.cos(a) * (player.r + 6),
+      y: player.y + Math.sin(a) * (player.r + 6),
+      vx, vy,
+      r: g.id === 'rocket' ? 8 : 4,
+      dmg: g.dmg,
+      color: g.id === 'laser' ? '#5bf7ff' : '#ffd84d',
+      life: 1.2,
+      isRocket: g.id === 'rocket'
+    });
+  }
+}
+
+function update(dt){
+  // movement
+  const left = keys.has('ArrowLeft') || keys.has('a') || keys.has('A') || hold.left;
+  const right = keys.has('ArrowRight') || keys.has('d') || keys.has('D') || hold.right;
+  const up = keys.has('ArrowUp') || keys.has('w') || keys.has('W') || hold.up;
+  const down = keys.has('ArrowDown') || keys.has('s') || keys.has('S') || hold.down;
+  let ix = (left?-1:0) + (right?1:0);
+  let iy = (up?-1:0) + (down?1:0);
+  const im = Math.hypot(ix,iy);
+  if (im > 1){ ix/=im; iy/=im; }
+  const accel = 1600;
+  player.vx += ix * accel * dt;
+  player.vy += iy * accel * dt;
+  player.vx *= Math.pow(0.85, dt*60);
+  player.vy *= Math.pow(0.85, dt*60);
+  player.x += player.vx * dt;
+  player.y += player.vy * dt;
+  player.x = clamp(player.x, player.r+8, canvas.width - player.r - 8);
+  player.y = clamp(player.y, player.r+8, canvas.height - player.r - 8);
+
+  player.inv = Math.max(0, player.inv - dt);
+  player.fireCd = Math.max(0, player.fireCd - dt);
+
+  // shooting
+  const shooting = pointer.shoot || hold.shoot || spaceShootDown;
+  if (shooting){
+    const tx = pointer.active ? pointer.x : player.x + 1;
+    const ty = pointer.active ? pointer.y : player.y - 1;
+    shootAt(tx, ty);
+  }
+
+  // enemies chase
+  for (const e of enemies){
+    const dx = player.x - e.x;
+    const dy = player.y - e.y;
+    const m = Math.hypot(dx,dy) || 1;
+    e.vx += (dx/m) * e.speed * dt * 2.4;
+    e.vy += (dy/m) * e.speed * dt * 2.4;
+    e.vx *= Math.pow(0.90, dt*60);
+    e.vy *= Math.pow(0.90, dt*60);
+    e.x += e.vx * dt;
+    e.y += e.vy * dt;
+  }
+
+  // bullets
+  for (let i=bullets.length-1;i>=0;i--){
+    const b = bullets[i];
+    b.life -= dt;
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    if (b.life <= 0 || b.x < -40 || b.x > canvas.width+40 || b.y < -40 || b.y > canvas.height+40){
+      bullets.splice(i,1);
+      continue;
+    }
+    // hit enemy
+    for (let j=enemies.length-1;j>=0;j--){
+      const e = enemies[j];
+      const dx = b.x - e.x;
+      const dy = b.y - e.y;
+      const rr = b.r + e.r;
+      if (dx*dx + dy*dy <= rr*rr){
+        // impact
+        if (b.isRocket){
+          // splash damage
+          burst(b.x, b.y, '#ff4d6d', 24);
+          for (const e2 of enemies){
+            const ddx = e2.x - b.x, ddy = e2.y - b.y;
+            if (ddx*ddx + ddy*ddy < (80*80)) e2.hp -= b.dmg;
+          }
+        } else {
+          e.hp -= b.dmg;
+          burst(b.x, b.y, b.color, 10);
+        }
+        bullets.splice(i,1);
+        break;
+      }
+    }
+  }
+
+  // enemy deaths + drops
+  for (let i=enemies.length-1;i>=0;i--){
+    const e = enemies[i];
+    if (e.hp <= 0){
+      enemies.splice(i,1);
+      score += 10;
+      // drop coins
+      const dropN = 1 + (Math.random() < 0.35 ? 1 : 0);
+      for (let k=0;k<dropN;k++){
+        drops.push({ x: e.x + rand(-8,8), y: e.y + rand(-8,8), r: 8, vy: rand(30, 60) });
+      }
+      burst(e.x, e.y, '#22ffb6', 22);
+    }
+  }
+
+  // drops
+  for (let i=drops.length-1;i>=0;i--){
+    const d = drops[i];
+    d.y += d.vy * dt;
+    // pickup
+    const dx = d.x - player.x, dy = d.y - player.y;
+    if (dx*dx + dy*dy <= (player.r + d.r) * (player.r + d.r)){
+      drops.splice(i,1);
+      coins += 1;
+      save();
+      updateHUD();
+      burst(d.x, d.y, '#ffd84d', 10);
+    }
+  }
+
+  // player hit
+  for (const e of enemies){
+    const dx = e.x - player.x, dy = e.y - player.y;
+    const rr = e.r + player.r;
+    if (dx*dx + dy*dy <= rr*rr){
+      if (player.inv <= 0){
+        player.hp -= 1;
+        player.inv = 1.0;
+        burst(player.x, player.y, '#ff4d6d', 26);
+        if (player.hp <= 0){
+          end();
+          return;
+        }
+      }
+    }
+  }
+
+  // keep action going
+  if (enemies.length < 4 + Math.floor(score/60)){
+    spawnWave(1 + (Math.random() < 0.35 ? 1 : 0));
+  }
+
+  // particles
+  for (let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= Math.pow(0.88, dt*60);
+    p.vy *= Math.pow(0.88, dt*60);
+    if (p.life <= 0) particles.splice(i,1);
+  }
+
+  updateHUD();
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // subtle grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let x=0;x<canvas.width;x+=40){
+    ctx.beginPath();
+    ctx.moveTo(x,0); ctx.lineTo(x,canvas.height);
+    ctx.stroke();
+  }
+  for (let y=0;y<canvas.height;y+=40){
+    ctx.beginPath();
+    ctx.moveTo(0,y); ctx.lineTo(canvas.width,y);
+    ctx.stroke();
+  }
+
+  // drops
+  for (const d of drops){
+    ctx.shadowColor = '#ffd84d';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#ffd84d';
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // bullets
+  for (const b of bullets){
+    ctx.shadowColor = b.color;
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // enemies
+  for (const e of enemies){
+    ctx.shadowColor = '#ff4d6d';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = 'rgba(255,77,109,0.85)';
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // eyes
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.beginPath();
+    ctx.arc(e.x - e.r*0.25, e.y - e.r*0.15, Math.max(2, e.r*0.08), 0, Math.PI*2);
+    ctx.arc(e.x + e.r*0.15, e.y - e.r*0.10, Math.max(2, e.r*0.08), 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // player
+  const blink = player.inv > 0 && Math.floor(now()*10) % 2 === 0;
+  if (!blink){
+    ctx.shadowColor = '#22ffb6';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = '#22ffb6';
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // gun line
+    const tx = pointer.active ? pointer.x : player.x + 1;
+    const ty = pointer.active ? pointer.y : player.y - 1;
+    const a = Math.atan2(ty-player.y, tx-player.x);
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(player.x, player.y);
+    ctx.lineTo(player.x + Math.cos(a)*26, player.y + Math.sin(a)*26);
+    ctx.stroke();
+  }
+
+  // particles
+  for (const p of particles){
+    ctx.globalAlpha = clamp(p.life / 0.8, 0, 1);
+    ctx.fillStyle = p.col;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // top hint
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(10, 10, 430, 30);
+  ctx.fillStyle = 'rgba(255,255,255,0.90)';
+  ctx.font = '900 14px Verdana, "Comic Sans MS", sans-serif';
+  ctx.fillText('Collect coins → buy guns in SHOP (G). Hold shoot to fire.', 18, 31);
+}
+
+function frame(t){
+  requestAnimationFrame(frame);
+  if (!running){ draw(); return; }
+  if (paused || gameOver){ draw(); return; }
+  if (!lastT) lastT = t;
+  const dt = Math.min(0.033, (t - lastT) / 1000);
+  lastT = t;
+  update(dt);
+  draw();
+}
+requestAnimationFrame(frame);
+
+// UI wiring
+function openShopUI(){
+  overlay.classList.remove('hidden');
+  homeOnlyEl.style.display = 'none';
+  shopOverlayEl.style.display = 'block';
+  renderShop();
+}
+btnShop.addEventListener('click', openShopUI);
+btnShop2.addEventListener('click', openShopUI);
+btnBackHome.addEventListener('click', () => {
+  shopOverlayEl.style.display = 'none';
+  homeOnlyEl.style.display = 'block';
+});
+
+// init
+renderShop();
+updateHUD();
+
+</script>
+</body>
+</html>
+
+

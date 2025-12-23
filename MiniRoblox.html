@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MiniRoblox Obby Builder</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.10);
+      --panel2:rgba(255,255,255,0.06);
+      --border:rgba(255,255,255,0.16);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.76);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+      --shadow: rgba(0,0,0,0.45);
+    }
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      background:
+        radial-gradient(1000px 700px at 50% 20%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 55%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 20% 85%, rgba(255,77,109,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      overflow:hidden;
+      touch-action: none;
+      -webkit-user-select:none;
+      user-select:none;
+    }
+    .wrap{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+    }
+    .card{
+      width:min(1100px, 96vw);
+      height:min(720px, 92vh);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: 0 24px 80px var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    canvas{ width:100%; height:100%; display:block; }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background: radial-gradient(900px 500px at 50% 25%, rgba(91,247,255,0.12), rgba(0,0,0,0.72));
+    }
+    .overlay.hidden{ display:none; }
+    .panel{
+      width:min(680px, 92vw);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+      box-shadow: 0 24px 80px rgba(0,0,0,0.50);
+      padding:14px 14px 12px;
+      text-align:left;
+    }
+    h1{
+      margin:0 0 8px 0;
+      font-size:26px;
+      letter-spacing:0.3px;
+      text-shadow: 0 0 18px rgba(34,255,182,0.25);
+    }
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-weight:800;
+      font-size:13px;
+      line-height:1.45;
+    }
+    .row{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.28);
+      color:var(--text);
+      font-weight:900;
+      font-size:12px;
+    }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border:1px solid rgba(255,255,255,0.18);
+      border-bottom-color: rgba(255,255,255,0.30);
+      border-radius:8px;
+      background: rgba(0,0,0,0.28);
+      font-weight:1000;
+    }
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.30);
+      color:var(--text);
+      font-weight:900;
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+    }
+    button.primary{
+      background:linear-gradient(180deg, rgba(34,255,182,0.22), rgba(34,255,182,0.10));
+      border-color: rgba(34,255,182,0.35);
+      box-shadow: 0 0 24px rgba(34,255,182,0.18);
+    }
+
+    /* Touch UI */
+    .touchUI{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+    .touchBtn{
+      pointer-events:auto;
+      position:absolute;
+      width:64px;
+      height:64px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.28);
+      color:rgba(242,246,255,0.90);
+      font-weight:1000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    .touchBtn.small{
+      width:56px;height:56px;border-radius:14px;font-size:12px;
+    }
+    .touchBtn.on{
+      border-color: rgba(34,255,182,0.45);
+      box-shadow: 0 0 18px rgba(34,255,182,0.18);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c"></canvas>
+
+      <div class="touchUI" id="touchUI">
+        <div class="touchBtn" id="btnLeft" style="left:14px;bottom:18px;">◀</div>
+        <div class="touchBtn" id="btnRight" style="left:92px;bottom:18px;">▶</div>
+        <div class="touchBtn" id="btnJump" style="right:14px;bottom:18px;">⤒</div>
+        <div class="touchBtn small" id="btnMode" style="right:86px;bottom:18px;">BUILD</div>
+        <div class="touchBtn small" id="btnPlace" style="right:158px;bottom:18px;">PLACE</div>
+      </div>
+
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1>MiniRoblox Obby Builder</h1>
+          <p class="sub">
+            Roblox-style obby + build mode. Jump across platforms, grab coins, and build your own course!
+          </p>
+          <div class="row">
+            <span class="pill">Move: <span class="kbd">A/D</span> or <span class="kbd">←/→</span> • Jump: <span class="kbd">Space</span></span>
+            <span class="pill">Toggle Build: <span class="kbd">B</span> • Place: <span class="kbd">Click/Tap</span> • Delete: <span class="kbd">X</span></span>
+            <span class="pill">Reset: <span class="kbd">R</span></span>
+          </div>
+          <div class="row">
+            <span class="pill">Touch: buttons + tap to place (in BUILD)</span>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="primary" id="btnPlay">Play</button>
+            <button id="btnReset">Reset Save</button>
+          </div>
+          <p class="sub" style="margin-top:10px">
+            - Coins unlock “fancier blocks” (just for fun colors).<br/>
+            - Your built blocks are saved.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const btnPlay = document.getElementById('btnPlay');
+  const btnReset = document.getElementById('btnReset');
+
+  const btnLeft = document.getElementById('btnLeft');
+  const btnRight = document.getElementById('btnRight');
+  const btnJump = document.getElementById('btnJump');
+  const btnMode = document.getElementById('btnMode');
+  const btnPlace = document.getElementById('btnPlace');
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const now = () => performance.now();
+
+  // Canvas sizing in CSS pixels
+  let viewW = 0, viewH = 0, viewDpr = 1;
+  function resize(){
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const r = canvas.getBoundingClientRect();
+    viewW = Math.max(320, Math.floor(r.width));
+    viewH = Math.max(240, Math.floor(r.height));
+    viewDpr = dpr;
+    canvas.width = Math.floor(viewW * dpr);
+    canvas.height = Math.floor(viewH * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.imageSmoothingEnabled = false;
+  }
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(resize);
+
+  // World grid
+  const TILE = 32;
+  const WORLD_W = 120;
+  const WORLD_H = 40;
+  const AIR = 0, SOLID = 1, LAVA = 2, CHECK = 3;
+  const base = new Uint8Array(WORLD_W * WORLD_H);
+  function idx(x,y){ return y*WORLD_W + x; }
+  function inBounds(x,y){ return x>=0 && y>=0 && x<WORLD_W && y<WORLD_H; }
+  function getTile(x,y){
+    if (!inBounds(x,y)) return SOLID; // border is solid
+    const k = x + ',' + y;
+    if (diff.hasOwnProperty(k)) return diff[k];
+    return base[idx(x,y)];
+  }
+  function setTile(x,y,t){
+    if (!inBounds(x,y)) return;
+    const k = x + ',' + y;
+    const b = base[idx(x,y)];
+    if (t === b){
+      if (diff.hasOwnProperty(k)) delete diff[k];
+    } else {
+      diff[k] = t;
+    }
+  }
+  function solidTile(t){ return t === SOLID || t === CHECK; }
+
+  // Save
+  const LS = {
+    diff: 'miniroblox_diff_v1',
+    coins: 'miniroblox_coins_v1',
+    fancy: 'miniroblox_fancy_v1'
+  };
+  let diff = {};
+  let coins = 0;
+  let fancyUnlocked = 0;
+  function loadSave(){
+    try{
+      diff = JSON.parse(localStorage.getItem(LS.diff) || '{}') || {};
+    } catch { diff = {}; }
+    coins = parseInt(localStorage.getItem(LS.coins) || '0', 10) || 0;
+    fancyUnlocked = parseInt(localStorage.getItem(LS.fancy) || '0', 10) || 0;
+  }
+  function save(){
+    try{
+      localStorage.setItem(LS.diff, JSON.stringify(diff));
+      localStorage.setItem(LS.coins, String(coins|0));
+      localStorage.setItem(LS.fancy, String(fancyUnlocked|0));
+    } catch {}
+  }
+  function resetSave(){
+    try{
+      localStorage.removeItem(LS.diff);
+      localStorage.removeItem(LS.coins);
+      localStorage.removeItem(LS.fancy);
+    } catch {}
+  }
+
+  // Build the base map (simple obby)
+  function genBase(){
+    for (let i=0;i<base.length;i++) base[i] = AIR;
+    // floor
+    for (let x=0;x<WORLD_W;x++){
+      base[idx(x, WORLD_H-1)] = SOLID;
+      base[idx(x, WORLD_H-2)] = SOLID;
+    }
+    // spawn platform
+    for (let x=2;x<12;x++) base[idx(x, WORLD_H-6)] = SOLID;
+    base[idx(4, WORLD_H-7)] = CHECK;
+    // gaps + platforms
+    for (let x=16;x<22;x++) base[idx(x, WORLD_H-9)] = SOLID;
+    for (let x=26;x<31;x++) base[idx(x, WORLD_H-12)] = SOLID;
+    for (let x=34;x<44;x++) base[idx(x, WORLD_H-8)] = SOLID;
+    for (let x=48;x<54;x++) base[idx(x, WORLD_H-10)] = SOLID;
+    for (let x=58;x<64;x++) base[idx(x, WORLD_H-13)] = SOLID;
+    base[idx(60, WORLD_H-14)] = CHECK;
+
+    // lava pit
+    for (let x=22;x<34;x++){
+      base[idx(x, WORLD_H-3)] = LAVA;
+    }
+    for (let x=44;x<48;x++){
+      base[idx(x, WORLD_H-3)] = LAVA;
+    }
+    for (let x=54;x<58;x++){
+      base[idx(x, WORLD_H-3)] = LAVA;
+    }
+  }
+
+  // Coins spawn (not saved, just fun)
+  let coinSpots = [];
+  function genCoins(){
+    coinSpots = [];
+    function add(x,y){
+      coinSpots.push({ x:x+0.5, y:y+0.5, got:false, bob:Math.random()*10 });
+    }
+    add(18, WORLD_H-10);
+    add(27, WORLD_H-13);
+    add(38, WORLD_H-9);
+    add(50, WORLD_H-11);
+    add(61, WORLD_H-15);
+  }
+
+  // Player
+  const keys = {};
+  function setKey(k, v){ keys[k] = v; }
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') e.preventDefault();
+    setKey(e.key, true);
+  });
+  document.addEventListener('keyup', (e) => setKey(e.key, false));
+
+  const player = {
+    x: 4*TILE,
+    y: (WORLD_H-10)*TILE,
+    vx: 0,
+    vy: 0,
+    w: 20,
+    h: 34,
+    onGround: false,
+    face: 1,
+    spawnX: 4*TILE,
+    spawnY: (WORLD_H-10)*TILE,
+  };
+
+  function respawn(){
+    player.x = player.spawnX;
+    player.y = player.spawnY;
+    player.vx = 0;
+    player.vy = 0;
+  }
+
+  // Mode
+  let running = false;
+  let buildMode = false;
+  let selectedBrush = SOLID; // place solid by default
+  function setBuild(on){
+    buildMode = !!on;
+    btnMode.textContent = buildMode ? 'PLAY' : 'BUILD';
+    btnMode.classList.toggle('on', buildMode);
+  }
+
+  // Touch controls
+  function bindHold(el, onDown, onUp){
+    function down(e){ e.preventDefault(); onDown(); }
+    function up(e){ e.preventDefault(); onUp(); }
+    el.addEventListener('pointerdown', down, { passive:false });
+    el.addEventListener('pointerup', up, { passive:false });
+    el.addEventListener('pointercancel', up, { passive:false });
+    el.addEventListener('pointerleave', up, { passive:false });
+  }
+  bindHold(btnLeft, () => { setKey('ArrowLeft', true); btnLeft.classList.add('on'); }, () => { setKey('ArrowLeft', false); btnLeft.classList.remove('on'); });
+  bindHold(btnRight, () => { setKey('ArrowRight', true); btnRight.classList.add('on'); }, () => { setKey('ArrowRight', false); btnRight.classList.remove('on'); });
+  bindHold(btnJump, () => { setKey(' ', true); setKey('Space', true); btnJump.classList.add('on'); }, () => { setKey(' ', false); setKey('Space', false); btnJump.classList.remove('on'); });
+
+  btnMode.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    setBuild(!buildMode);
+    save(); // remember fancy unlock/coins etc anyway
+  }, { passive:false });
+
+  btnPlace.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    // quick brush switch: tap cycles block type (solid -> lava if fancy unlocked -> checkpoint if fancy unlocked)
+    if (!buildMode) return;
+    if (fancyUnlocked <= 0){ selectedBrush = SOLID; }
+    else {
+      selectedBrush = (selectedBrush === SOLID) ? LAVA : (selectedBrush === LAVA ? CHECK : SOLID);
+    }
+    btnPlace.classList.add('on');
+    setTimeout(() => btnPlace.classList.remove('on'), 120);
+  }, { passive:false });
+
+  // Camera
+  let camX = 0, camY = 0;
+
+  function aabb(px,py,pw,ph, tx,ty){
+    const x0 = tx*TILE, y0 = ty*TILE;
+    return (px < x0+TILE && px+pw > x0 && py < y0+TILE && py+ph > y0);
+  }
+
+  function collideAxis(axis){
+    const pw = player.w, ph = player.h;
+    const minX = Math.floor(player.x / TILE) - 2;
+    const maxX = Math.floor((player.x+pw) / TILE) + 2;
+    const minY = Math.floor(player.y / TILE) - 2;
+    const maxY = Math.floor((player.y+ph) / TILE) + 2;
+    if (axis === 'y') player.onGround = false;
+
+    for (let y=minY;y<=maxY;y++){
+      for (let x=minX;x<=maxX;x++){
+        const t = getTile(x,y);
+        if (!solidTile(t) && t !== SOLID) {
+          if (t !== SOLID) continue;
+        }
+        if (t !== SOLID && t !== CHECK) continue;
+        if (!aabb(player.x, player.y, pw, ph, x, y)) continue;
+        const tx0 = x*TILE, ty0 = y*TILE;
+        if (axis === 'x'){
+          if (player.vx > 0) player.x = tx0 - pw - 0.01;
+          else if (player.vx < 0) player.x = tx0 + TILE + 0.01;
+          player.vx = 0;
+        } else {
+          if (player.vy > 0){
+            player.y = ty0 - ph - 0.01;
+            player.vy = 0;
+            player.onGround = true;
+          } else if (player.vy < 0){
+            player.y = ty0 + TILE + 0.01;
+            player.vy = 0;
+          }
+        }
+      }
+    }
+  }
+
+  function physics(dt){
+    const speed = 360;
+    const accel = 2300;
+    const friction = Math.pow(0.84, dt*60);
+    const grav = 2500;
+    const jumpV = 900;
+
+    const left = keys['ArrowLeft'] || keys['a'] || keys['A'];
+    const right = keys['ArrowRight'] || keys['d'] || keys['D'];
+    const jump = keys[' '] || keys['Space'];
+
+    let ax = 0;
+    if (left) ax -= accel;
+    if (right) ax += accel;
+    if (ax !== 0) player.face = ax > 0 ? 1 : -1;
+
+    player.vx += ax * dt;
+    player.vx = clamp(player.vx, -speed, speed);
+    if (ax === 0) player.vx *= friction;
+
+    player.vy += grav * dt;
+    player.vy = clamp(player.vy, -9999, 2600);
+
+    if (jump && player.onGround){
+      player.vy = -jumpV;
+      player.onGround = false;
+    }
+
+    player.x += player.vx * dt;
+    collideAxis('x');
+    player.y += player.vy * dt;
+    collideAxis('y');
+
+    // death if fall
+    if (player.y > WORLD_H*TILE + 200) respawn();
+
+    // hazards / checkpoint
+    const cx = Math.floor((player.x + player.w*0.5) / TILE);
+    const cy = Math.floor((player.y + player.h*0.5) / TILE);
+    const here = getTile(cx, cy);
+    if (here === LAVA){
+      respawn();
+    } else if (here === CHECK){
+      player.spawnX = cx*TILE;
+      player.spawnY = (cy-1)*TILE;
+    }
+  }
+
+  // Interaction: place/delete blocks in build mode
+  function screenToWorld(px, py){
+    return { wx: px + camX, wy: py + camY };
+  }
+  function tryBuildAt(worldX, worldY, del){
+    const tx = Math.floor(worldX / TILE);
+    const ty = Math.floor(worldY / TILE);
+    if (!inBounds(tx,ty)) return;
+    // Don't place inside player
+    if (!del){
+      if (aabb(player.x, player.y, player.w, player.h, tx, ty)) return;
+    }
+    const t = getTile(tx,ty);
+    if (del){
+      if (t === AIR) return;
+      // don't delete base floor
+      if (ty >= WORLD_H-2) return;
+      setTile(tx,ty,AIR);
+      save();
+      return;
+    }
+    // place
+    if (t !== AIR) return;
+    // don't overwrite the spawn platform check at start
+    setTile(tx,ty,selectedBrush);
+    save();
+  }
+
+  let deleting = false;
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'b' || e.key === 'B') setBuild(!buildMode);
+    if (e.key === 'x' || e.key === 'X') deleting = true;
+    if (e.key === 'r' || e.key === 'R') respawn();
+  });
+  document.addEventListener('keyup', (e) => {
+    if (e.key === 'x' || e.key === 'X') deleting = false;
+  });
+
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!running) return;
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left);
+    const py = (e.clientY - rect.top);
+    if (buildMode){
+      e.preventDefault();
+      const w = screenToWorld(px, py);
+      // right click deletes
+      const del = deleting || e.button === 2;
+      tryBuildAt(w.wx, w.wy, del);
+      return;
+    }
+  }, { passive:false });
+
+  // Coin pickup
+  function coinTick(dt){
+    for (const c of coinSpots){
+      if (c.got) continue;
+      c.bob += dt*3.0;
+      const cx = c.x*TILE;
+      const cy = c.y*TILE + Math.sin(c.bob)*4;
+      const dx = (player.x + player.w*0.5) - cx;
+      const dy = (player.y + player.h*0.55) - cy;
+      if (dx*dx + dy*dy < 26*26){
+        c.got = true;
+        coins += 1;
+        if (coins >= 10 && fancyUnlocked === 0){
+          fancyUnlocked = 1;
+        }
+        save();
+      }
+    }
+  }
+
+  // Draw
+  function drawSky(){
+    const W = viewW, H = viewH;
+    const t = now()/1000;
+    const cyc = (t*0.03) % 1;
+    const k = 0.5 - 0.5*Math.cos(cyc*Math.PI*2);
+    const r1 = Math.floor(10 + 18*k);
+    const g1 = Math.floor(20 + 40*k);
+    const b1 = Math.floor(38 + 90*k);
+    const r2 = Math.floor(6 + 10*k);
+    const g2 = Math.floor(10 + 16*k);
+    const b2 = Math.floor(16 + 38*k);
+    const grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0, `rgb(${r1},${g1},${b1})`);
+    grad.addColorStop(1, `rgb(${r2},${g2},${b2})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  function draw(){
+    const W = viewW, H = viewH;
+    drawSky();
+
+    // camera follows player
+    camX = player.x + player.w*0.5 - W*0.5;
+    camY = player.y + player.h*0.5 - H*0.55;
+    camX = clamp(camX, 0, Math.max(0, WORLD_W*TILE - W));
+    camY = clamp(camY, 0, Math.max(0, WORLD_H*TILE - H));
+
+    // tiles
+    const x0 = Math.floor(camX / TILE) - 1;
+    const y0 = Math.floor(camY / TILE) - 1;
+    const x1 = Math.floor((camX + W) / TILE) + 1;
+    const y1 = Math.floor((camY + H) / TILE) + 1;
+
+    for (let y=y0;y<=y1;y++){
+      for (let x=x0;x<=x1;x++){
+        const t = getTile(x,y);
+        if (t === AIR) continue;
+        const sx = x*TILE - camX;
+        const sy = y*TILE - camY;
+        if (t === SOLID){
+          // block (Roblox-ish)
+          const fancy = (fancyUnlocked ? (1 + ((x+y) % 3)) : 0);
+          const col = fancy === 0 ? '#8d98a5' : (fancy === 1 ? '#22ffb6' : (fancy === 2 ? '#ffd84d' : '#be00be'));
+          ctx.fillStyle = col;
+          ctx.fillRect(sx, sy, TILE, TILE);
+          ctx.fillStyle = 'rgba(255,255,255,0.14)';
+          ctx.fillRect(sx, sy, TILE, 4);
+          ctx.fillStyle = 'rgba(0,0,0,0.16)';
+          ctx.fillRect(sx, sy+TILE-4, TILE, 4);
+          ctx.fillRect(sx+TILE-4, sy, 4, TILE);
+        } else if (t === LAVA){
+          ctx.fillStyle = '#ff4d6d';
+          ctx.fillRect(sx, sy, TILE, TILE);
+          ctx.fillStyle = 'rgba(0,0,0,0.18)';
+          ctx.fillRect(sx, sy+TILE-6, TILE, 6);
+        } else if (t === CHECK){
+          ctx.fillStyle = '#5bf7ff';
+          ctx.fillRect(sx, sy, TILE, TILE);
+          ctx.fillStyle = 'rgba(0,0,0,0.22)';
+          ctx.fillRect(sx+8, sy+8, TILE-16, TILE-16);
+        }
+      }
+    }
+
+    // coins
+    for (const c of coinSpots){
+      if (c.got) continue;
+      const cx = c.x*TILE - camX;
+      const cy = c.y*TILE - camY + Math.sin(c.bob)*4;
+      ctx.shadowColor = '#ffd84d';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = '#ffd84d';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 8, 0, Math.PI*2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(0,0,0,0.20)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 4, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // player
+    const px = player.x - camX;
+    const py = player.y - camY;
+    ctx.shadowColor = 'rgba(34,255,182,0.25)';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = '#22ffb6';
+    ctx.fillRect(px, py, player.w, player.h);
+    ctx.shadowBlur = 0;
+    // head
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.fillRect(px, py, player.w, 6);
+    // face
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    const eyeY = py + 10;
+    const eyeX = player.face > 0 ? (px + player.w*0.60) : (px + player.w*0.18);
+    ctx.fillRect(eyeX, eyeY, 4, 4);
+    // legs shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.20)';
+    ctx.fillRect(px+2, py+player.h-4, player.w-4, 3);
+
+    // build cursor
+    if (buildMode){
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(10, 92, Math.min(560, W-20), 32);
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.font = '900 13px Verdana';
+      const brush = (selectedBrush === SOLID ? 'SOLID' : (selectedBrush === LAVA ? 'LAVA' : 'CHECK'));
+      ctx.fillText(`BUILD MODE • Tap to place (${brush}) • Hold X or right-click to delete • Tap PLACE to cycle brush`, 18, 114);
+    }
+
+    // HUD
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    ctx.fillRect(10, 10, Math.min(520, W-20), 72);
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = '900 14px Verdana';
+    ctx.fillText('MiniRoblox Obby Builder', 18, 32);
+    ctx.fillStyle = 'rgba(242,246,255,0.80)';
+    ctx.font = '900 12px Verdana';
+    ctx.fillText(`Coins: ${coins}  • Fancy Blocks: ${fancyUnlocked ? 'Unlocked' : 'Locked (get 10 coins)'}`, 18, 52);
+    ctx.fillText(`Checkpoint: (${Math.floor(player.spawnX/TILE)}, ${Math.floor(player.spawnY/TILE)})`, 18, 70);
+  }
+
+  // Boot
+  function start(){
+    loadSave();
+    genBase();
+    genCoins();
+    respawn();
+    setBuild(false);
+    overlay.classList.add('hidden');
+    running = true;
+    lastT = 0;
+  }
+
+  btnPlay.addEventListener('pointerdown', (e) => { e.preventDefault(); start(); }, { passive:false });
+  btnReset.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!confirm('Reset MiniRoblox save?')) return;
+    resetSave();
+    location.reload();
+  }, { passive:false });
+
+  // Main loop
+  let lastT = 0;
+  function frame(t){
+    requestAnimationFrame(frame);
+    if (!running){
+      draw();
+      return;
+    }
+    if (!lastT) lastT = t;
+    const dt = Math.min(0.04, (t - lastT) / 1000);
+    lastT = t;
+    if (!buildMode) physics(dt);
+    coinTick(dt);
+    draw();
+  }
+  requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
+
+
+
+

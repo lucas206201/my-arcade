@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Classroom Chaos: New Teacher Day (Kid-Friendly)</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.10);
+      --panel2:rgba(255,255,255,0.06);
+      --border:rgba(255,255,255,0.16);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.76);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+      --shadow: rgba(0,0,0,0.45);
+    }
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      background:
+        radial-gradient(1000px 700px at 50% 20%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 55%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 20% 85%, rgba(255,77,109,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      overflow:hidden;
+      touch-action:none;
+      -webkit-user-select:none;
+      user-select:none;
+    }
+    .wrap{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+    }
+    .card{
+      width:min(1100px, 96vw);
+      height:min(720px, 92vh);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: 0 24px 80px var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    canvas{ width:100%; height:100%; display:block; }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background: radial-gradient(900px 500px at 50% 25%, rgba(91,247,255,0.12), rgba(0,0,0,0.72));
+    }
+    .overlay.hidden{ display:none; }
+    .panel{
+      width:min(740px, 92vw);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+      box-shadow: 0 24px 80px rgba(0,0,0,0.50);
+      padding:14px 14px 12px;
+      text-align:left;
+    }
+    h1{
+      margin:0 0 8px 0;
+      font-size:26px;
+      letter-spacing:0.3px;
+      text-shadow: 0 0 18px rgba(34,255,182,0.25);
+    }
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-weight:800;
+      font-size:13px;
+      line-height:1.45;
+    }
+    .row{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.28);
+      color:var(--text);
+      font-weight:900;
+      font-size:12px;
+    }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border:1px solid rgba(255,255,255,0.18);
+      border-bottom-color: rgba(255,255,255,0.30);
+      border-radius:8px;
+      background: rgba(0,0,0,0.28);
+      font-weight:1000;
+    }
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.30);
+      color:var(--text);
+      font-weight:900;
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+    }
+    button.primary{
+      background:linear-gradient(180deg, rgba(34,255,182,0.22), rgba(34,255,182,0.10));
+      border-color: rgba(34,255,182,0.35);
+      box-shadow: 0 0 24px rgba(34,255,182,0.18);
+    }
+
+    /* Touch UI */
+    .touchUI{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+    .touchBtn{
+      pointer-events:auto;
+      position:absolute;
+      width:64px;
+      height:64px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.28);
+      color:rgba(242,246,255,0.90);
+      font-weight:1000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    .touchBtn.small{
+      width:56px;height:56px;border-radius:14px;font-size:12px;
+    }
+    .touchBtn.on{
+      border-color: rgba(34,255,182,0.45);
+      box-shadow: 0 0 18px rgba(34,255,182,0.18);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c"></canvas>
+
+      <div class="touchUI">
+        <div class="touchBtn" id="btnLeft" style="left:14px;bottom:18px;">◀</div>
+        <div class="touchBtn" id="btnRight" style="left:92px;bottom:18px;">▶</div>
+        <div class="touchBtn" id="btnUp" style="left:53px;bottom:92px;">▲</div>
+        <div class="touchBtn" id="btnDown" style="left:53px;bottom:18px;transform:translateY(-74px);">▼</div>
+
+        <div class="touchBtn small" id="btnDrop" style="right:14px;bottom:18px;">DROP</div>
+        <div class="touchBtn small" id="btnSweep" style="right:86px;bottom:18px;">CLEAN</div>
+      </div>
+
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1>Classroom Chaos: New Teacher Day</h1>
+          <p class="sub">
+            A kid-friendly stealth game: do <b>silly harmless pranks</b> and <b>helpful chores</b>. If the teacher catches you doing mischief, you get a “Time-Out” and restart.
+          </p>
+          <div class="row">
+            <span class="pill">Move: <span class="kbd">WASD</span> / <span class="kbd">Arrow Keys</span></span>
+            <span class="pill">Drop prank: <span class="kbd">Space</span></span>
+            <span class="pill">Clean up: <span class="kbd">E</span></span>
+          </div>
+          <div class="row">
+            <span class="pill">Goal: Fill the <b>Chaos Meter</b> to make the teacher take a break and a <b>new substitute teacher</b> arrives.</span>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="primary" id="btnPlay">Play</button>
+            <button id="btnReset">Reset Save</button>
+          </div>
+          <p class="sub" style="margin-top:10px">
+            Real-life note: be kind at school — this is just a silly game.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const btnPlay = document.getElementById('btnPlay');
+  const btnReset = document.getElementById('btnReset');
+  const btnLeft = document.getElementById('btnLeft');
+  const btnRight = document.getElementById('btnRight');
+  const btnUp = document.getElementById('btnUp');
+  const btnDown = document.getElementById('btnDown');
+  const btnDrop = document.getElementById('btnDrop');
+  const btnSweep = document.getElementById('btnSweep');
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const rand = (a,b) => a + Math.random()*(b-a);
+
+  // Canvas sizing in CSS pixels
+  let viewW = 0, viewH = 0, viewDpr = 1;
+  function resize(){
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const r = canvas.getBoundingClientRect();
+    viewW = Math.max(320, Math.floor(r.width));
+    viewH = Math.max(240, Math.floor(r.height));
+    viewDpr = dpr;
+    canvas.width = Math.floor(viewW * dpr);
+    canvas.height = Math.floor(viewH * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.imageSmoothingEnabled = false;
+  }
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(resize);
+
+  // World
+  const TILE = 32;
+  const GW = 34, GH = 20;
+  const W = () => GW*TILE;
+  const H = () => GH*TILE;
+
+  // 0 floor, 1 wall/desk
+  const grid = new Uint8Array(GW*GH);
+  function gi(x,y){ return y*GW + x; }
+  function inb(x,y){ return x>=0 && y>=0 && x<GW && y<GH; }
+  function cell(x,y){ return inb(x,y) ? grid[gi(x,y)] : 1; }
+
+  function genRoom(){
+    for (let i=0;i<grid.length;i++) grid[i] = 0;
+    // borders
+    for (let x=0;x<GW;x++){ grid[gi(x,0)] = 1; grid[gi(x,GH-1)] = 1; }
+    for (let y=0;y<GH;y++){ grid[gi(0,y)] = 1; grid[gi(GW-1,y)] = 1; }
+    // desks
+    for (let y=4;y<GH-4;y+=3){
+      for (let x=4;x<GW-4;x+=4){
+        grid[gi(x,y)] = 1;
+        grid[gi(x+1,y)] = 1;
+      }
+    }
+    // teacher desk/front
+    for (let x=10;x<24;x++){
+      grid[gi(x,2)] = 1;
+    }
+    // doorway gap
+    grid[gi(0, GH-3)] = 0;
+    grid[gi(0, GH-4)] = 0;
+  }
+
+  // Save
+  const LS = { best:'classroomChaosBest', subs:'classroomChaosSubs' };
+  let bestSubs = parseInt(localStorage.getItem(LS.best) || '0', 10) || 0;
+
+  // Entities
+  const player = { x: 3*TILE+10, y: (GH-4)*TILE, r: 12, vx:0, vy:0 };
+  const teacher = { x: (GW-6)*TILE, y: 5*TILE, r: 14, speed: 130, angle: 0, fov: 0.85, range: 220, mood: 0 };
+
+  const pranks = []; // {x,y,type,ttl}
+  const messes = []; // chores: {x,y,ttl}
+
+  let chaos = 0; // 0..100
+  let subs = 0;  // how many substitutes arrived
+  let timeOut = 0;
+  let running = false;
+  let paused = false;
+
+  const keys = {};
+  function setKey(k, v){ keys[k] = v; }
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') e.preventDefault();
+    setKey(e.key, true);
+    if (e.key === 'Escape') paused = !paused;
+  });
+  document.addEventListener('keyup', (e) => setKey(e.key, false));
+
+  function bindHold(el, onDown, onUp){
+    function down(e){ e.preventDefault(); onDown(); }
+    function up(e){ e.preventDefault(); onUp(); }
+    el.addEventListener('pointerdown', down, { passive:false });
+    el.addEventListener('pointerup', up, { passive:false });
+    el.addEventListener('pointercancel', up, { passive:false });
+    el.addEventListener('pointerleave', up, { passive:false });
+  }
+  bindHold(btnLeft, () => { setKey('ArrowLeft', true); btnLeft.classList.add('on'); }, () => { setKey('ArrowLeft', false); btnLeft.classList.remove('on'); });
+  bindHold(btnRight, () => { setKey('ArrowRight', true); btnRight.classList.add('on'); }, () => { setKey('ArrowRight', false); btnRight.classList.remove('on'); });
+  bindHold(btnUp, () => { setKey('ArrowUp', true); btnUp.classList.add('on'); }, () => { setKey('ArrowUp', false); btnUp.classList.remove('on'); });
+  bindHold(btnDown, () => { setKey('ArrowDown', true); btnDown.classList.add('on'); }, () => { setKey('ArrowDown', false); btnDown.classList.remove('on'); });
+  btnDrop.addEventListener('pointerdown', (e) => { e.preventDefault(); doDrop(); btnDrop.classList.add('on'); setTimeout(()=>btnDrop.classList.remove('on'), 120); }, { passive:false });
+  btnSweep.addEventListener('pointerdown', (e) => { e.preventDefault(); doClean(); btnSweep.classList.add('on'); setTimeout(()=>btnSweep.classList.remove('on'), 120); }, { passive:false });
+
+  function resetRound(){
+    genRoom();
+    player.x = 3*TILE+10; player.y = (GH-4)*TILE; player.vx = 0; player.vy = 0;
+    teacher.x = (GW-6)*TILE; teacher.y = 5*TILE;
+    teacher.angle = Math.PI;
+    pranks.length = 0;
+    messes.length = 0;
+    chaos = 0;
+    timeOut = 0;
+    spawnMesses(6);
+  }
+
+  function spawnMesses(n){
+    for (let i=0;i<n;i++){
+      const tries = 50;
+      for (let t=0;t<tries;t++){
+        const x = Math.floor(rand(2, GW-2));
+        const y = Math.floor(rand(3, GH-2));
+        if (cell(x,y) === 1) continue;
+        messes.push({ x: x*TILE + TILE*0.5, y: y*TILE + TILE*0.5, ttl: 9999 });
+        break;
+      }
+    }
+  }
+
+  function doDrop(){
+    if (!running || paused) return;
+    // drop a harmless prank item where you stand: rubber duck / paper airplane / whoopee cushion (just silly)
+    const t = ['DUCK','PLANE','CUSHION'][Math.floor(rand(0,3))];
+    pranks.push({ x: player.x, y: player.y, type: t, ttl: 12 });
+    chaos = clamp(chaos + 9, 0, 100);
+    // pranks also create a little mess sometimes
+    if (Math.random() < 0.35){
+      messes.push({ x: player.x + rand(-26,26), y: player.y + rand(-26,26), ttl: 9999 });
+    }
+  }
+
+  function doClean(){
+    if (!running || paused) return;
+    // clean nearest mess (helpful chore)
+    let best = -1, bestD = 1e9;
+    for (let i=0;i<messes.length;i++){
+      const m = messes[i];
+      const dx = m.x - player.x, dy = m.y - player.y;
+      const d = dx*dx + dy*dy;
+      if (d < bestD){ bestD = d; best = i; }
+    }
+    if (best >= 0 && bestD < 34*34){
+      messes.splice(best, 1);
+      chaos = clamp(chaos + 3, 0, 100); // being helpful still advances the “day”
+      // reduce risk by calming teacher mood
+      teacher.mood = Math.max(0, teacher.mood - 0.3);
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (!running) return;
+    if (e.key === ' ' || e.code === 'Space') doDrop();
+    if (e.key === 'e' || e.key === 'E') doClean();
+  });
+
+  function collideCircleWalls(ent){
+    const gx = Math.floor(ent.x / TILE);
+    const gy = Math.floor(ent.y / TILE);
+    for (let y=gy-1;y<=gy+1;y++){
+      for (let x=gx-1;x<=gx+1;x++){
+        if (cell(x,y) !== 1) continue;
+        const rx = x*TILE, ry = y*TILE;
+        const cx = clamp(ent.x, rx, rx+TILE);
+        const cy = clamp(ent.y, ry, ry+TILE);
+        const dx = ent.x - cx, dy = ent.y - cy;
+        const d = Math.hypot(dx,dy);
+        if (d > 0 && d < ent.r){
+          const push = (ent.r - d);
+          ent.x += (dx/d)*push;
+          ent.y += (dy/d)*push;
+        }
+      }
+    }
+  }
+
+  function teacherAI(dt){
+    // Walk a loose patrol. Gets more suspicious as chaos rises.
+    teacher.mood = clamp(teacher.mood + dt*(chaos/100)*0.18, 0, 2.0);
+    const sp = teacher.speed * (1 + teacher.mood*0.22);
+    // steer toward random waypoints
+    if (!teacher.wp || Math.hypot(teacher.wp.x - teacher.x, teacher.wp.y - teacher.y) < 12){
+      // pick a target area: front, middle, back
+      const zone = Math.floor(rand(0,3));
+      const tx = zone === 0 ? rand(8, 26) : zone === 1 ? rand(4, GW-4) : rand(2, 10);
+      const ty = zone === 0 ? rand(3, 6) : zone === 1 ? rand(6, GH-6) : rand(GH-6, GH-3);
+      teacher.wp = { x: tx*TILE + TILE*0.5, y: ty*TILE + TILE*0.5 };
+    }
+    const dx = teacher.wp.x - teacher.x;
+    const dy = teacher.wp.y - teacher.y;
+    const d = Math.hypot(dx,dy) || 1;
+    teacher.x += (dx/d)*sp*dt;
+    teacher.y += (dy/d)*sp*dt;
+    teacher.angle = Math.atan2(dy, dx);
+    collideCircleWalls(teacher);
+  }
+
+  function canSeeTeacherToPlayer(){
+    // vision cone check + line-ish of sight by sampling along ray
+    const dx = player.x - teacher.x;
+    const dy = player.y - teacher.y;
+    const dist = Math.hypot(dx,dy);
+    if (dist > teacher.range) return false;
+    const ang = Math.atan2(dy, dx);
+    let da = ang - teacher.angle;
+    while (da > Math.PI) da -= Math.PI*2;
+    while (da < -Math.PI) da += Math.PI*2;
+    if (Math.abs(da) > teacher.fov) return false;
+
+    const steps = Math.max(6, Math.floor(dist / 18));
+    for (let i=1;i<=steps;i++){
+      const t = i/steps;
+      const sx = teacher.x + dx*t;
+      const sy = teacher.y + dy*t;
+      const gx = Math.floor(sx / TILE);
+      const gy = Math.floor(sy / TILE);
+      if (cell(gx,gy) === 1) return false;
+    }
+    return true;
+  }
+
+  function update(dt){
+    if (!running) return;
+    if (paused) return;
+
+    if (timeOut > 0){
+      timeOut -= dt;
+      if (timeOut <= 0){
+        resetRound();
+      }
+      return;
+    }
+
+    // player move
+    const speed = 175;
+    let ix = 0, iy = 0;
+    if (keys['ArrowLeft'] || keys['a'] || keys['A']) ix -= 1;
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) ix += 1;
+    if (keys['ArrowUp'] || keys['w'] || keys['W']) iy -= 1;
+    if (keys['ArrowDown'] || keys['s'] || keys['S']) iy += 1;
+    const im = Math.hypot(ix,iy);
+    if (im > 1){ ix /= im; iy /= im; }
+    player.x += ix * speed * dt;
+    player.y += iy * speed * dt;
+    collideCircleWalls(player);
+
+    // decay pranks
+    for (let i=pranks.length-1;i>=0;i--){
+      pranks[i].ttl -= dt;
+      if (pranks[i].ttl <= 0) pranks.splice(i,1);
+    }
+
+    teacherAI(dt);
+
+    // caught?
+    const seen = canSeeTeacherToPlayer();
+    // The teacher only “catches” you if you are near a prank OR holding still with prank near you (fake rule: "acting sus")
+    let prankNear = false;
+    for (const p of pranks){
+      const dx = p.x - player.x, dy = p.y - player.y;
+      if (dx*dx + dy*dy < 70*70){ prankNear = true; break; }
+    }
+    if (seen && (prankNear || chaos > 70)){
+      timeOut = 1.3;
+    }
+
+    // win condition: chaos meter to 100 => substitute arrives
+    if (chaos >= 100){
+      subs += 1;
+      bestSubs = Math.max(bestSubs, subs);
+      localStorage.setItem(LS.best, String(bestSubs));
+      // reset but keep subs count (new teacher shows up)
+      resetRound();
+      // new teacher is a bit different each time
+      teacher.range = 210 + subs*10;
+      teacher.fov = 0.85 + Math.min(0.25, subs*0.05);
+      teacher.speed = 130 + subs*12;
+      chaos = 0;
+    }
+  }
+
+  function roundRect(x,y,w,h,r){
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.lineTo(x+w-rr, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
+    ctx.lineTo(x+w, y+h-rr);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+    ctx.lineTo(x+rr, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
+    ctx.lineTo(x, y+rr);
+    ctx.quadraticCurveTo(x, y, x+rr, y);
+    ctx.closePath();
+  }
+
+  function draw(){
+    const Wv = viewW || 800;
+    const Hv = viewH || 520;
+    ctx.clearRect(0,0,Wv,Hv);
+
+    // camera centers room
+    const ox = Math.floor(Wv*0.5 - W()*0.5);
+    const oy = Math.floor(Hv*0.5 - H()*0.5);
+
+    // floor
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillRect(ox, oy, W(), H());
+
+    // grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    for (let x=0;x<=GW;x++){
+      ctx.beginPath();
+      ctx.moveTo(ox + x*TILE, oy);
+      ctx.lineTo(ox + x*TILE, oy + H());
+      ctx.stroke();
+    }
+    for (let y=0;y<=GH;y++){
+      ctx.beginPath();
+      ctx.moveTo(ox, oy + y*TILE);
+      ctx.lineTo(ox + W(), oy + y*TILE);
+      ctx.stroke();
+    }
+
+    // desks/walls
+    for (let y=0;y<GH;y++){
+      for (let x=0;x<GW;x++){
+        if (cell(x,y) !== 1) continue;
+        const sx = ox + x*TILE;
+        const sy = oy + y*TILE;
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillRect(sx, sy, TILE, TILE);
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        ctx.fillRect(sx, sy+TILE-5, TILE, 5);
+      }
+    }
+
+    // messes (chores)
+    for (const m of messes){
+      const x = ox + m.x, y = oy + m.y;
+      ctx.shadowColor = 'rgba(255,216,77,0.55)';
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = 'rgba(255,216,77,0.80)';
+      ctx.beginPath();
+      ctx.arc(x, y, 7, 0, Math.PI*2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(0,0,0,0.20)';
+      ctx.beginPath();
+      ctx.arc(x-2, y+1, 3, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // pranks
+    for (const p of pranks){
+      const x = ox + p.x, y = oy + p.y;
+      const col = p.type === 'DUCK' ? '#ffd84d' : (p.type === 'PLANE' ? '#5bf7ff' : '#ff4d6d');
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, Math.PI*2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.font = '1000 10px Verdana';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.type[0], x, y+4);
+      ctx.textAlign = 'left';
+    }
+
+    // teacher vision cone
+    const tx = ox + teacher.x, ty = oy + teacher.y;
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = '#ff4d6d';
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.arc(tx, ty, teacher.range, teacher.angle - teacher.fov, teacher.angle + teacher.fov);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // teacher
+    ctx.shadowColor = '#ff4d6d';
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = '#ff4d6d';
+    ctx.beginPath();
+    ctx.arc(tx, ty, teacher.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.arc(tx + Math.cos(teacher.angle)*8, ty + Math.sin(teacher.angle)*8, 4, 0, Math.PI*2);
+    ctx.fill();
+
+    // player
+    const px = ox + player.x, py = oy + player.y;
+    ctx.shadowColor = '#22ffb6';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = '#22ffb6';
+    ctx.beginPath();
+    ctx.arc(px, py, player.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.arc(px-4, py+10, 4, 0, Math.PI*2);
+    ctx.arc(px+4, py+10, 4, 0, Math.PI*2);
+    ctx.fill();
+
+    // HUD
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    roundRect(10, 10, Math.min(640, Wv-20), 78, 14);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = '900 14px Verdana';
+    ctx.fillText('Classroom Chaos', 22, 34);
+    ctx.fillStyle = 'rgba(242,246,255,0.80)';
+    ctx.font = '900 12px Verdana';
+    ctx.fillText(`Substitutes: ${subs}  (Best: ${bestSubs})`, 22, 54);
+    ctx.fillText(`Messes left: ${messes.length} • Press E/CLEAN near mess`, 22, 72);
+
+    // chaos meter
+    const bx = 260, by = 24, bw = Math.min(300, Wv - 290), bh = 14;
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = 'rgba(34,255,182,0.85)';
+    ctx.fillRect(bx, by, bw * (chaos/100), bh);
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.strokeRect(bx+0.5, by+0.5, bw-1, bh-1);
+    ctx.fillStyle = 'rgba(242,246,255,0.80)';
+    ctx.fillText('Chaos', bx, by-3);
+
+    if (paused){
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(0,0,Wv,Hv);
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.font = '1000 34px Verdana';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', Wv*0.5, Hv*0.45);
+      ctx.font = '900 14px Verdana';
+      ctx.fillText('Press Esc to resume', Wv*0.5, Hv*0.52);
+      ctx.textAlign = 'left';
+    }
+
+    if (timeOut > 0){
+      ctx.fillStyle = 'rgba(0,0,0,0.62)';
+      ctx.fillRect(0,0,Wv,Hv);
+      ctx.fillStyle = 'rgba(255,77,109,0.95)';
+      ctx.font = '1000 34px Verdana';
+      ctx.textAlign = 'center';
+      ctx.fillText('TIME-OUT!', Wv*0.5, Hv*0.45);
+      ctx.fillStyle = 'rgba(242,246,255,0.85)';
+      ctx.font = '900 14px Verdana';
+      ctx.fillText('Teacher caught you doing mischief. Restarting...', Wv*0.5, Hv*0.52);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  btnPlay.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    running = true;
+    paused = false;
+    subs = 0;
+    resetRound();
+    overlay.classList.add('hidden');
+  }, { passive:false });
+
+  btnReset.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!confirm('Reset best score?')) return;
+    localStorage.removeItem(LS.best);
+    bestSubs = 0;
+  }, { passive:false });
+
+  let lastT = 0;
+  function frame(t){
+    requestAnimationFrame(frame);
+    if (!lastT) lastT = t;
+    const dt = Math.min(0.04, (t - lastT) / 1000);
+    lastT = t;
+    update(dt);
+    draw();
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
+
+
+
+

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Big Map Tag (2 Players)</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.10);
+      --panel2:rgba(255,255,255,0.06);
+      --border:rgba(255,255,255,0.16);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.76);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+      --shadow: rgba(0,0,0,0.45);
+    }
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      background:
+        radial-gradient(1000px 700px at 50% 20%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 55%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 20% 85%, rgba(255,77,109,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      overflow:hidden;
+      touch-action:none;
+      -webkit-user-select:none;
+      user-select:none;
+    }
+    .wrap{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+    }
+    .card{
+      width:min(1100px, 96vw);
+      height:min(720px, 92vh);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: 0 24px 80px var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    canvas{ width:100%; height:100%; display:block; }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background: radial-gradient(900px 500px at 50% 25%, rgba(91,247,255,0.12), rgba(0,0,0,0.72));
+    }
+    .overlay.hidden{ display:none; }
+    .panel{
+      width:min(820px, 92vw);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+      box-shadow: 0 24px 80px rgba(0,0,0,0.50);
+      padding:14px 14px 12px;
+      text-align:left;
+    }
+    h1{
+      margin:0 0 8px 0;
+      font-size:26px;
+      letter-spacing:0.3px;
+      text-shadow: 0 0 18px rgba(34,255,182,0.25);
+    }
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-weight:800;
+      font-size:13px;
+      line-height:1.45;
+    }
+    .row{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.28);
+      color:var(--text);
+      font-weight:900;
+      font-size:12px;
+    }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border:1px solid rgba(255,255,255,0.18);
+      border-bottom-color: rgba(255,255,255,0.30);
+      border-radius:8px;
+      background: rgba(0,0,0,0.28);
+      font-weight:1000;
+    }
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.30);
+      color:var(--text);
+      font-weight:900;
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+    }
+    button.primary{
+      background:linear-gradient(180deg, rgba(34,255,182,0.22), rgba(34,255,182,0.10));
+      border-color: rgba(34,255,182,0.35);
+      box-shadow: 0 0 24px rgba(34,255,182,0.18);
+    }
+
+    /* Touch UI: left side for P1, right side for P2 */
+    .touchUI{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+    .touchBtn{
+      pointer-events:auto;
+      position:absolute;
+      width:56px;
+      height:56px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.28);
+      color:rgba(242,246,255,0.90);
+      font-weight:1000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .touchBtn.on{
+      border-color: rgba(34,255,182,0.45);
+      box-shadow: 0 0 18px rgba(34,255,182,0.18);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c"></canvas>
+
+      <div class="touchUI">
+        <!-- P1 -->
+        <div class="touchBtn" id="p1L" style="left:14px;bottom:18px;">◀</div>
+        <div class="touchBtn" id="p1R" style="left:78px;bottom:18px;">▶</div>
+        <div class="touchBtn" id="p1J" style="left:46px;bottom:82px;">⤒</div>
+        <div class="touchBtn" id="p1S" style="left:142px;bottom:18px;">RUN</div>
+        <div class="touchBtn" id="p1C" style="left:14px;top:14px;">P1 CHAT</div>
+
+        <!-- P2 -->
+        <div class="touchBtn" id="p2L" style="right:142px;bottom:18px;">◀</div>
+        <div class="touchBtn" id="p2R" style="right:78px;bottom:18px;">▶</div>
+        <div class="touchBtn" id="p2J" style="right:110px;bottom:82px;">⤒</div>
+        <div class="touchBtn" id="p2S" style="right:14px;bottom:18px;">RUN</div>
+        <div class="touchBtn" id="p2C" style="right:14px;top:14px;">P2 CHAT</div>
+      </div>
+
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1>Big Map Tag (2 Players)</h1>
+          <p class="sub">
+            No AI. Two players on the same device. Side-view tag on a <b>BIG map</b> with platforms.
+          </p>
+          <div class="row">
+            <span class="pill"><b>P1</b> move: <span class="kbd">A/D</span> • jump: <span class="kbd">W</span> • sprint: <span class="kbd">Shift</span> • chat: <span class="kbd">T</span></span>
+            <span class="pill"><b>P2</b> move: <span class="kbd">←/→</span> • jump: <span class="kbd">↑</span> • sprint: <span class="kbd">/</span> • chat: <span class="kbd">M</span></span>
+          </div>
+          <div class="row">
+            <span class="pill">Tag: touch the other player</span>
+            <span class="pill">Goal: survive while you are NOT IT</span>
+            <span class="pill">Chat: use the buttons or keys to send messages</span>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="primary" id="btnPlay">Play</button>
+            <button id="btnSwap">Swap Who Is IT</button>
+          </div>
+          <p class="sub" style="margin-top:10px">
+            Online version: to make real internet multiplayer, you’ll need a server (Supabase/Firebase). This file is local 2-player only.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const btnPlay = document.getElementById('btnPlay');
+  const btnSwap = document.getElementById('btnSwap');
+  const btnP1C = document.getElementById('p1C');
+  const btnP2C = document.getElementById('p2C');
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const rand = (a,b) => a + Math.random()*(b-a);
+  const now = () => performance.now();
+
+  // Canvas sizing in CSS pixels
+  let viewW = 0, viewH = 0, viewDpr = 1;
+  function resize(){
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const r = canvas.getBoundingClientRect();
+    viewW = Math.max(320, Math.floor(r.width));
+    viewH = Math.max(240, Math.floor(r.height));
+    viewDpr = dpr;
+    canvas.width = Math.floor(viewW * dpr);
+    canvas.height = Math.floor(viewH * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.imageSmoothingEnabled = false;
+  }
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(resize);
+
+  // Side-view big world (platform tag)
+  const WORLD_W = 8200;
+  const WORLD_H = 2600;
+  const GRAV = 2600;
+
+  // Platforms / walls (axis-aligned rects)
+  const plats = []; // {x,y,w,h}
+  function genMap(){
+    plats.length = 0;
+    // ground
+    plats.push({ x:-200, y:WORLD_H-80, w:WORLD_W+400, h:200 });
+    // big “hills”
+    plats.push({ x: 420, y:WORLD_H-260, w: 620, h: 36 });
+    plats.push({ x: 1180, y:WORLD_H-420, w: 520, h: 36 });
+    plats.push({ x: 1900, y:WORLD_H-320, w: 720, h: 36 });
+    plats.push({ x: 2860, y:WORLD_H-520, w: 560, h: 36 });
+    plats.push({ x: 3680, y:WORLD_H-360, w: 740, h: 36 });
+    plats.push({ x: 4680, y:WORLD_H-620, w: 620, h: 36 });
+    plats.push({ x: 5480, y:WORLD_H-420, w: 820, h: 36 });
+    plats.push({ x: 6600, y:WORLD_H-560, w: 520, h: 36 });
+    plats.push({ x: 7280, y:WORLD_H-360, w: 740, h: 36 });
+
+    // vertical blocks
+    for (let i=0;i<38;i++){
+      const w = rand(70, 160);
+      const h = rand(120, 420);
+      const x = rand(220, WORLD_W-220-w);
+      const y = rand(240, WORLD_H-220-h);
+      plats.push({ x, y, w, h });
+    }
+    // long platforms / bridges
+    for (let i=0;i<22;i++){
+      const w = rand(260, 720);
+      const h = 26;
+      const x = rand(160, WORLD_W-160-w);
+      const y = rand(300, WORLD_H-380);
+      plats.push({ x, y, w, h });
+    }
+  }
+
+  // Players
+  const P = (name, col) => ({
+    name,
+    col,
+    x: 0, y: 0,
+    vx: 0, vy: 0,
+    w: 26,
+    h: 40,
+    face: 1,
+    it: false,
+    score: 0,
+    onGround: false,
+    tagCooldown: 0,
+    sayCd: 0,
+  });
+  const p1 = P('P1', '#22ffb6');
+  const p2 = P('P2', '#5bf7ff');
+  let running = false;
+  let lastT = 0;
+  let matchT = 0;
+
+  function respawn(){
+    // spawn far apart
+    p1.x = 220; p1.y = WORLD_H-240;
+    p2.x = WORLD_W-220; p2.y = WORLD_H-240;
+    p1.vx=p1.vy=0;
+    p2.vx=p2.vy=0;
+    p1.tagCooldown = 0;
+    p2.tagCooldown = 0;
+    p1.onGround = p2.onGround = false;
+  }
+
+  function setIt(which){
+    p1.it = which === 1;
+    p2.it = which === 2;
+    p1.tagCooldown = 0.9;
+    p2.tagCooldown = 0.9;
+  }
+
+  // Input
+  const keys = {};
+  function setKey(k, v){ keys[k] = v; }
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') e.preventDefault();
+    keys[e.key] = true;
+  });
+  document.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+  // Touch buttons
+  function bindHold(id, key){
+    const el = document.getElementById(id);
+    if (!el) return;
+    function down(e){ e.preventDefault(); setKey(key, true); el.classList.add('on'); }
+    function up(e){ e.preventDefault(); setKey(key, false); el.classList.remove('on'); }
+    el.addEventListener('pointerdown', down, { passive:false });
+    el.addEventListener('pointerup', up, { passive:false });
+    el.addEventListener('pointercancel', up, { passive:false });
+    el.addEventListener('pointerleave', up, { passive:false });
+  }
+  // P1: A/D + W jump + Shift
+  bindHold('p1L','a'); bindHold('p1R','d'); bindHold('p1J','w'); bindHold('p1S','Shift');
+  // P2: Arrow keys + / sprint
+  bindHold('p2L','ArrowLeft'); bindHold('p2R','ArrowRight'); bindHold('p2J','ArrowUp'); bindHold('p2S','/');
+
+  // Chat (local)
+  const chat = []; // {who,text,ttl}
+  function addChat(who, text){
+    const msg = String(text || '').trim();
+    if (!msg) return;
+    chat.unshift({ who, text: msg.slice(0, 60), ttl: 8 });
+    while (chat.length > 6) chat.pop();
+  }
+  function randPick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function sayItLine(who){
+    addChat(who, randPick([
+      "I'm IT!!!",
+      "I'M IT. RUN!",
+      "I'm coming!",
+      "I see you!",
+      "I'm gonna tag you!",
+      "I'm the fastest!",
+      "I got turbo legs!",
+      "I'm the tag monster!",
+    ]));
+  }
+  function sayRunnerLine(who){
+    addChat(who, randPick([
+      "I'm not it!",
+      "I'm running!!!",
+      "I can't get tagged!",
+      "I'm hiding!",
+      "I am SPEED!",
+      "I juked you!",
+      "I almost fell!",
+      "I'm safe... for now!",
+    ]));
+  }
+  function promptChat(who){
+    const msg = prompt(who + ' say:');
+    if (msg == null) return;
+    addChat(who, msg);
+  }
+  btnP1C.addEventListener('pointerdown', (e) => { e.preventDefault(); if (running) promptChat('P1'); }, { passive:false });
+  btnP2C.addEventListener('pointerdown', (e) => { e.preventDefault(); if (running) promptChat('P2'); }, { passive:false });
+
+  // Upgrade IT switch to also talk
+  const _setIt = setIt;
+  setIt = function(which){
+    _setIt(which);
+    p1.sayCd = 1.2;
+    p2.sayCd = 1.2;
+    if (p1.it){
+      sayItLine('P1');
+      sayRunnerLine('P2');
+    } else {
+      sayItLine('P2');
+      sayRunnerLine('P1');
+    }
+  };
+
+  // AABB helpers (player is rect, platforms are rect)
+  function aabbOverlap(ax,ay,aw,ah, bx,by,bw,bh){
+    return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
+  }
+  function collidePlayer(ent){
+    ent.onGround = false;
+    // simple resolve against platforms
+    for (const r of plats){
+      if (!aabbOverlap(ent.x, ent.y, ent.w, ent.h, r.x, r.y, r.w, r.h)) continue;
+      // resolve by minimal axis (approx)
+      const dx1 = (r.x + r.w) - ent.x;
+      const dx2 = (ent.x + ent.w) - r.x;
+      const dy1 = (r.y + r.h) - ent.y;
+      const dy2 = (ent.y + ent.h) - r.y;
+      const minX = Math.min(dx1, dx2);
+      const minY = Math.min(dy1, dy2);
+      if (minX < minY){
+        if (dx1 < dx2) ent.x = r.x + r.w + 0.01;
+        else ent.x = r.x - ent.w - 0.01;
+        ent.vx = 0;
+      } else {
+        if (dy1 < dy2){
+          // hit from top side? (ent above platform)
+          ent.y = r.y + r.h + 0.01;
+          ent.vy = Math.max(0, ent.vy);
+        } else {
+          // landed on platform
+          ent.y = r.y - ent.h - 0.01;
+          ent.vy = 0;
+          ent.onGround = true;
+        }
+      }
+    }
+    ent.x = clamp(ent.x, 0, WORLD_W - ent.w);
+    ent.y = clamp(ent.y, 0, WORLD_H - ent.h);
+  }
+
+  function movePlayer(ent, dt, input){
+    const baseSpeed = ent.it ? 360 : 330;
+    const sprint = input.sprint ? 1.38 : 1.0;
+    const sp = baseSpeed * sprint * (ent.it ? 1.08 : 1.0);
+    const accel = 2600;
+    const friction = Math.pow(0.84, dt*60);
+    const jumpV = 980;
+
+    let ix = 0;
+    if (input.left) ix -= 1;
+    if (input.right) ix += 1;
+    if (ix !== 0) ent.face = ix > 0 ? 1 : -1;
+
+    ent.vx += ix * accel * dt;
+    ent.vx = clamp(ent.vx, -sp, sp);
+    if (ix === 0) ent.vx *= friction;
+
+    ent.vy += GRAV * dt;
+    ent.vy = clamp(ent.vy, -2000, 2200);
+
+    if (input.jump && ent.onGround){
+      ent.vy = -jumpV;
+      ent.onGround = false;
+    }
+
+    // X then Y
+    ent.x += ent.vx * dt;
+    collidePlayer(ent);
+    ent.y += ent.vy * dt;
+    collidePlayer(ent);
+  }
+
+  function tagLogic(dt){
+    p1.tagCooldown = Math.max(0, p1.tagCooldown - dt);
+    p2.tagCooldown = Math.max(0, p2.tagCooldown - dt);
+
+    const touch = aabbOverlap(p1.x, p1.y, p1.w, p1.h, p2.x, p2.y, p2.w, p2.h);
+    if (!touch) return;
+
+    // Only IT can tag, and there is a cooldown to avoid instant re-tag.
+    if (p1.it && p1.tagCooldown <= 0){
+      addChat('P1', randPick(["I tagged you!", "I GOT YOU!", "I touched you! TAG!", "I win this tag!"]));
+      addChat('P2', randPick(["I got tagged...", "I was so close!", "I got caught!", "I slipped!"]));
+      setIt(2);
+      return;
+    }
+    if (p2.it && p2.tagCooldown <= 0){
+      addChat('P2', randPick(["I tagged you!", "I GOT YOU!", "I touched you! TAG!", "I win this tag!"]));
+      addChat('P1', randPick(["I got tagged...", "I was so close!", "I got caught!", "I slipped!"]));
+      setIt(1);
+      return;
+    }
+  }
+
+  function update(dt){
+    if (!running) return;
+    matchT += dt;
+    for (const m of chat) m.ttl -= dt;
+    while (chat.length && chat[chat.length-1].ttl <= 0) chat.pop();
+
+    // occasional auto "I ..." lines (not spammy)
+    p1.sayCd = Math.max(0, p1.sayCd - dt);
+    p2.sayCd = Math.max(0, p2.sayCd - dt);
+    if (p1.sayCd <= 0){
+      if (Math.random() < 0.22){
+        (p1.it ? sayItLine : sayRunnerLine)('P1');
+      }
+      p1.sayCd = 3.2 + Math.random()*2.8;
+    }
+    if (p2.sayCd <= 0){
+      if (Math.random() < 0.22){
+        (p2.it ? sayItLine : sayRunnerLine)('P2');
+      }
+      p2.sayCd = 3.2 + Math.random()*2.8;
+    }
+
+    // score: you get points for surviving while NOT it
+    if (!p1.it) p1.score += dt;
+    if (!p2.it) p2.score += dt;
+
+    movePlayer(p1, dt, {
+      left: keys['a'] || keys['A'],
+      right: keys['d'] || keys['D'],
+      jump: keys['w'] || keys['W'],
+      sprint: !!keys['Shift']
+    });
+    movePlayer(p2, dt, {
+      left: !!keys['ArrowLeft'],
+      right: !!keys['ArrowRight'],
+      jump: !!keys['ArrowUp'],
+      sprint: !!keys['/']
+    });
+    tagLogic(dt);
+  }
+
+  function draw(){
+    const Wv = viewW || 800;
+    const Hv = viewH || 520;
+    ctx.clearRect(0,0,Wv,Hv);
+
+    // shared camera centered between players
+    const cx = (p1.x + p2.x) * 0.5;
+    const cy = (p1.y + p2.y) * 0.5;
+    let camX = cx - Wv*0.5;
+    let camY = cy - Hv*0.55;
+    camX = clamp(camX, 0, Math.max(0, WORLD_W - Wv));
+    camY = clamp(camY, 0, Math.max(0, WORLD_H - Hv));
+
+    // background grid
+    ctx.fillStyle = 'rgba(255,255,255,0.02)';
+    ctx.fillRect(0,0,Wv,Hv);
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    for (let x=Math.floor(camX/120)*120; x<camX+Wv; x+=120){
+      ctx.beginPath();
+      ctx.moveTo(x-camX, 0);
+      ctx.lineTo(x-camX, Hv);
+      ctx.stroke();
+    }
+    for (let y=Math.floor(camY/120)*120; y<camY+Hv; y+=120){
+      ctx.beginPath();
+      ctx.moveTo(0, y-camY);
+      ctx.lineTo(Wv, y-camY);
+      ctx.stroke();
+    }
+
+    // platforms
+    for (const r of plats){
+      const sx = r.x - camX;
+      const sy = r.y - camY;
+      if (sx > Wv+80 || sy > Hv+80 || sx+r.w < -80 || sy+r.h < -80) continue;
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(sx, sy, r.w, r.h);
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(sx, sy+r.h-6, r.w, 6);
+    }
+
+    function drawPlayer(p){
+      const x = p.x - camX;
+      const y = p.y - camY;
+      // body (Roblox-ish)
+      ctx.shadowColor = p.col;
+      ctx.shadowBlur = p.it ? 22 : 14;
+      ctx.fillStyle = p.col;
+      ctx.fillRect(x, y, p.w, p.h);
+      ctx.shadowBlur = 0;
+      // face (front)
+      const fx = p.face > 0 ? (x + p.w*0.62) : (x + p.w*0.18);
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(fx, y + 10, 4, 4); // eye
+      ctx.fillRect(fx, y + 18, 6, 2); // mouth
+      // feet shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.fillRect(x+2, y+p.h-4, p.w-4, 3);
+      // IT ring
+      if (p.it){
+        ctx.strokeStyle = 'rgba(255,216,77,0.95)';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x-6, y-6, p.w+12, p.h+12);
+        ctx.lineWidth = 1;
+      }
+      // label
+      ctx.fillStyle = 'rgba(242,246,255,0.85)';
+      ctx.font = '900 12px Verdana';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.name, x + p.w/2, y - 10);
+      ctx.textAlign = 'left';
+    }
+    drawPlayer(p1);
+    drawPlayer(p2);
+
+    // HUD
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    ctx.fillRect(10, 10, Math.min(680, Wv-20), 78);
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = '900 14px Verdana';
+    ctx.fillText('Big Map Tag (2 Players)', 18, 32);
+    ctx.fillStyle = 'rgba(242,246,255,0.80)';
+    ctx.font = '900 12px Verdana';
+    const itName = p1.it ? 'P1' : 'P2';
+    ctx.fillText(`IT: ${itName}  •  Time: ${matchT.toFixed(1)}s`, 18, 52);
+    ctx.fillText(`Score (survive): P1 ${p1.score.toFixed(1)}  •  P2 ${p2.score.toFixed(1)}`, 18, 70);
+
+    // minimap
+    const mapW = 170, mapH = 110;
+    const mx = Wv - mapW - 12;
+    const my = 12;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(mx, my, mapW, mapH);
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+    ctx.strokeRect(mx+0.5, my+0.5, mapW-1, mapH-1);
+
+    function mmx(x){ return mx + (x / WORLD_W) * mapW; }
+    function mmy(y){ return my + (y / WORLD_H) * mapH; }
+    // camera box
+    ctx.strokeStyle = 'rgba(34,255,182,0.35)';
+    ctx.strokeRect(mmx(camX)+0.5, mmy(camY)+0.5, (Wv/WORLD_W)*mapW, (Hv/WORLD_H)*mapH);
+    // players dots
+    ctx.fillStyle = p1.it ? '#ffd84d' : p1.col;
+    ctx.beginPath(); ctx.arc(mmx(p1.x), mmy(p1.y), 3.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = p2.it ? '#ffd84d' : p2.col;
+    ctx.beginPath(); ctx.arc(mmx(p2.x), mmy(p2.y), 3.5, 0, Math.PI*2); ctx.fill();
+
+    // chat overlay
+    if (chat.length){
+      ctx.fillStyle = 'rgba(0,0,0,0.30)';
+      ctx.fillRect(10, 96, Math.min(340, Wv-20), 20 + chat.length*18);
+      ctx.fillStyle = 'rgba(242,246,255,0.88)';
+      ctx.font = '900 12px Verdana';
+      ctx.fillText('Chat:', 18, 112);
+      let yy = 130;
+      for (let i=0;i<chat.length;i++){
+        const m = chat[i];
+        ctx.globalAlpha = clamp(m.ttl / 8, 0.2, 1);
+        ctx.fillStyle = m.who === 'P1' ? '#22ffb6' : '#5bf7ff';
+        ctx.fillText(`${m.who}:`, 18, yy);
+        ctx.fillStyle = 'rgba(242,246,255,0.88)';
+        ctx.fillText(m.text, 62, yy);
+        yy += 18;
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function start(){
+    resize();
+    genMap();
+    respawn();
+    p1.score = 0; p2.score = 0;
+    matchT = 0;
+    setIt(Math.random() < 0.5 ? 1 : 2);
+    addChat('SYSTEM', 'Tag starts! Use P1 CHAT / P2 CHAT buttons.');
+    running = true;
+    overlay.classList.add('hidden');
+    lastT = 0;
+  }
+
+  btnPlay.addEventListener('pointerdown', (e) => { e.preventDefault(); start(); }, { passive:false });
+  btnSwap.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!running) return;
+    setIt(p1.it ? 2 : 1);
+  }, { passive:false });
+
+  document.addEventListener('keydown', (e) => {
+    if (!running) return;
+    if (e.key === 't' || e.key === 'T') promptChat('P1');
+    if (e.key === 'm' || e.key === 'M') promptChat('P2');
+  });
+
+  function frame(t){
+    requestAnimationFrame(frame);
+    if (!lastT) lastT = t;
+    const dt = Math.min(0.04, (t - lastT) / 1000);
+    lastT = t;
+    update(dt);
+    draw();
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
+
+

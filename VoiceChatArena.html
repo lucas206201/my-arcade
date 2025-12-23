@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Friends Voice Chat (2 Players)</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.10);
+      --panel2:rgba(255,255,255,0.06);
+      --border:rgba(255,255,255,0.16);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.78);
+      --accent:#22ffb6;
+      --gold:#b89d39;
+      --danger:#ff4d6d;
+      --shadow: rgba(0,0,0,0.45);
+    }
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      background:
+        radial-gradient(1000px 700px at 50% 20%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 55%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255, 255, 255, 0.1) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 20% 85%, rgba(255,77,109,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      color:var(--text);
+      overflow:hidden;
+      touch-action:none;
+      -webkit-user-select:none;
+      user-select:none;
+    }
+    .wrap{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+    }
+    .card{
+      width:min(1050px, 96vw);
+      height:min(720px, 92vh);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: 0 24px 80px var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    canvas{
+      width:100%;
+      height:100%;
+      display:block;
+      background:transparent;
+    }
+    .hud{
+      position:absolute;
+      left:10px;
+      top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      pointer-events:none;
+    }
+    .pill{
+      pointer-events:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.28);
+      color:var(--text);
+      font-weight:900;
+      font-size:12px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.20);
+      width:fit-content;
+      max-width:min(520px, 92vw);
+    }
+    .dot{ width:10px;height:10px;border-radius:50%; background:var(--accent); box-shadow:0 0 12px rgba(34,255,182,0.45); flex:0 0 auto; }
+    .dot.red{ background:var(--danger); box-shadow:0 0 12px rgba(255,77,109,0.45); }
+    .dot.gold{ background:var(--gold); box-shadow:0 0 12px rgba(255,216,77,0.45); }
+    .overlay{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background: radial-gradient(900px 500px at 50% 25%, rgba(91,247,255,0.12), rgba(0,0,0,0.72));
+    }
+    .overlay.hidden{ display:none; }
+    .panel{
+      width:min(760px, 92vw);
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+      box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+      padding:14px;
+      text-align:left;
+    }
+    h1{
+      margin:0 0 6px 0;
+      font-size:26px;
+      letter-spacing:0.3px;
+      text-shadow: 0 0 18px rgba(34,255,182,0.25);
+    }
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-weight:800;
+      font-size:13px;
+      line-height:1.45;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+      margin-top:12px;
+    }
+    @media (max-width: 760px){ .grid{ grid-template-columns: 1fr; } }
+    .box{
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.22);
+      border-radius:14px;
+      padding:12px;
+    }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.30);
+      color:var(--text);
+      font-weight:900;
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+    }
+    button.primary{
+      background:linear-gradient(180deg, rgba(34,255,182,0.22), rgba(34,255,182,0.10));
+      border-color: rgba(34,255,182,0.35);
+      box-shadow: 0 0 24px rgba(34,255,182,0.18);
+    }
+    button.secondary{
+      background:linear-gradient(180deg, rgba(255,216,77,0.22), rgba(255,216,77,0.10));
+      border-color: rgba(255,216,77,0.35);
+      box-shadow: 0 0 24px rgba(255,216,77,0.14);
+    }
+    button.danger{
+      background:linear-gradient(180deg, rgba(255,77,109,0.22), rgba(255,77,109,0.10));
+      border-color: rgba(255,77,109,0.35);
+      box-shadow: 0 0 24px rgba(255,77,109,0.14);
+    }
+    button:disabled{ opacity:0.55; cursor:not-allowed; }
+    textarea{
+      width:100%;
+      min-height:110px;
+      resize:vertical;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.25);
+      color:rgba(242,246,255,0.92);
+      padding:10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-weight:800;
+      font-size:12px;
+      outline:none;
+    }
+    input{
+      width:100%;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.25);
+      color:rgba(242,246,255,0.92);
+      padding:10px;
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      font-weight:900;
+      font-size:13px;
+      outline:none;
+    }
+    details summary{
+      cursor:pointer;
+      font-weight:1000;
+      color:rgba(242,246,255,0.92);
+      user-select:none;
+      list-style:none;
+    }
+    details summary::-webkit-details-marker{ display:none; }
+    .summaryRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .mini{
+      font-size:12px;
+      font-weight:900;
+      color:rgba(242,246,255,0.72);
+    }
+    .friendRow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .friendList{
+      margin-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .friendItem{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.20);
+    }
+    .friendName{
+      font-weight:1000;
+      font-size:12px;
+      color:rgba(242,246,255,0.92);
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      max-width:44vw;
+    }
+    .friendCode{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-weight:900;
+      font-size:11px;
+      color:rgba(242,246,255,0.70);
+      max-width:44vw;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .hint{
+      margin-top:8px;
+      color:rgba(242,246,255,0.72);
+      font-size:12px;
+      font-weight:800;
+      line-height:1.35;
+    }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border:1px solid rgba(255,255,255,0.18);
+      border-bottom-color: rgba(255,255,255,0.30);
+      border-radius:8px;
+      background: rgba(0,0,0,0.28);
+      font-weight:1000;
+    }
+    .joy{
+      position:absolute;
+      right:14px;
+      bottom:14px;
+      width:150px;
+      height:150px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.18);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+      display:none;
+      touch-action:none;
+    }
+    .joy .base{
+      position:absolute;
+      inset:18px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(255,255,255,0.05);
+    }
+    .joy .knob{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:54px;
+      height:54px;
+      transform:translate(-50%,-50%);
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:linear-gradient(180deg, rgba(34,255,182,0.25), rgba(0,0,0,0.25));
+      box-shadow: 0 0 20px rgba(34,255,182,0.18);
+    }
+    @media (pointer: coarse){
+      .joy{ display:block; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c" aria-hidden="true"></canvas>
+      <div class="hud">
+        <div class="pill" id="pillConn"><span class="dot red"></span><span id="connText">Not connected</span></div>
+        <div class="pill" id="pillMic"><span class="dot gold"></span><span id="micText">Mic: not started</span></div>
+        <div class="pill" id="pillHelp"><span class="dot"></span><span id="helpText">Friends-only voice chat • Mute: <span class="kbd">M</span> • Reset: <span class="kbd">R</span></span></div>
+      </div>
+
+      <div class="joy" id="joy" style="display:none" aria-hidden="true">
+        <div class="base"></div>
+        <div class="knob" id="joyKnob"></div>
+      </div>
+
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1>Friends Voice Chat (2 Players)</h1>
+          <p class="sub" id="topMsg">
+            This is a <b>friends-only</b> voice chat using your microphone. Add friends using their <b>Friend Code</b>, then press <b>PLAY with Friend</b>.
+            <br/>Safety tip: don’t share real names, phone numbers, addresses, or passwords.
+          </p>
+
+          <div class="box">
+            <div class="summaryRow">
+              <div>
+                <div style="font-weight:1000; font-size:16px;">Voice Chat (Friends Only)</div>
+                <div class="mini">Set a nickname, then voice chat only with friends (no public matchmaking).</div>
+              </div>
+              <div class="mini" id="onlineState">Online: OFF</div>
+            </div>
+
+            <div class="row">
+              <div style="flex:1; min-width:220px;">
+                <div class="hint" style="margin-top:0;">Nickname</div>
+                <input id="inpName" placeholder="Your name (example: Lucas)" maxlength="18" />
+              </div>
+              <div style="flex:1; min-width:260px;">
+                <div class="hint" style="margin-top:0;">Signaling Server URL (wss://...)</div>
+                <input id="inpWs" placeholder="wss://YOUR-SERVER.example/ws" />
+              </div>
+            </div>
+
+            <div class="row">
+              <button class="secondary" id="btnOnlineConnect">Connect Online</button>
+              <button class="danger" id="btnOnlineDisconnect" disabled>Disconnect</button>
+              <button class="primary" id="btnPlay" disabled>PLAY with Friend</button>
+              <button id="btnHow" style="margin-left:auto;">How to Play</button>
+            </div>
+
+            <div class="row" style="margin-top:6px;">
+              <div style="flex:1; min-width:240px;">
+                <div class="hint" style="margin-top:0;">Friend Code</div>
+                <input id="inpFriendCode" placeholder="Paste friend code here..." />
+              </div>
+              <button class="secondary" id="btnAddFriend" disabled>Add Friend</button>
+            </div>
+
+            <div class="hint">Your Friend Code:</div>
+            <textarea id="txtMyCode" style="min-height:56px;" readonly></textarea>
+
+            <div class="hint">Friends:</div>
+            <div class="friendList" id="friendsList"></div>
+          </div>
+
+          <details class="box" id="manualBox" style="margin-top:12px;">
+            <summary>
+              <div class="summaryRow">
+                <div>Manual Mode (works without a server)</div>
+                <div class="mini">Copy/paste Offer/Answer (advanced)</div>
+              </div>
+            </summary>
+            <div class="grid">
+              <div class="box" style="margin-top:12px;">
+                <h2 style="margin:0 0 6px 0; font-size:16px;">Host (Player 1)</h2>
+                <p class="sub">Make a room. Copy your Offer and send it to your friend.</p>
+                <div class="row">
+                  <button class="primary" id="btnHost">Start Hosting</button>
+                  <button id="btnCopyOffer" class="secondary" disabled>Copy Offer</button>
+                </div>
+                <div class="hint">Offer (send this):</div>
+                <textarea id="txtOffer" placeholder="Offer will appear here..."></textarea>
+                <div class="hint">Paste Answer from your friend here, then click “Finish Connect”.</div>
+                <textarea id="txtAnswerIn" placeholder="Paste Answer JSON here..."></textarea>
+                <div class="row">
+                  <button id="btnFinish" class="primary" disabled>Finish Connect</button>
+                  <button id="btnResetA" class="danger">Reset</button>
+                </div>
+              </div>
+
+              <div class="box" style="margin-top:12px;">
+                <h2 style="margin:0 0 6px 0; font-size:16px;">Join (Player 2)</h2>
+                <p class="sub">Paste Offer from the host, then copy your Answer back.</p>
+                <div class="hint">Paste Offer (from host):</div>
+                <textarea id="txtOfferIn" placeholder="Paste Offer JSON here..."></textarea>
+                <div class="row">
+                  <button class="primary" id="btnJoin">Join Room</button>
+                  <button id="btnCopyAnswer" class="secondary" disabled>Copy Answer</button>
+                </div>
+                <div class="hint">Answer (send back to host):</div>
+                <textarea id="txtAnswer" placeholder="Answer will appear here..."></textarea>
+                <div class="row">
+                  <button id="btnResetB" class="danger">Reset</button>
+                </div>
+                <p class="hint">
+                  If the room code is huge, that’s normal (it includes connection info).
+                </p>
+              </div>
+            </div>
+          </details>
+
+          <div class="row" style="margin-top:12px;">
+            <button id="btnMute" class="danger" disabled>Mute Mic</button>
+            <span class="sub" id="statusLine" style="margin-left:auto;">Voice starts when you press PLAY. Tip: use headphones to avoid echo.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  const overlay = document.getElementById('overlay');
+  const btnHost = document.getElementById('btnHost');
+  const btnJoin = document.getElementById('btnJoin');
+  const btnFinish = document.getElementById('btnFinish');
+  const btnCopyOffer = document.getElementById('btnCopyOffer');
+  const btnCopyAnswer = document.getElementById('btnCopyAnswer');
+  const btnResetA = document.getElementById('btnResetA');
+  const btnResetB = document.getElementById('btnResetB');
+  const btnHow = document.getElementById('btnHow');
+  const btnMute = document.getElementById('btnMute');
+  const btnOnlineConnect = document.getElementById('btnOnlineConnect');
+  const btnOnlineDisconnect = document.getElementById('btnOnlineDisconnect');
+  const btnPlay = document.getElementById('btnPlay');
+  const btnAddFriend = document.getElementById('btnAddFriend');
+
+  const txtOffer = document.getElementById('txtOffer');
+  const txtOfferIn = document.getElementById('txtOfferIn');
+  const txtAnswer = document.getElementById('txtAnswer');
+  const txtAnswerIn = document.getElementById('txtAnswerIn');
+  const txtMyCode = document.getElementById('txtMyCode');
+  const friendsList = document.getElementById('friendsList');
+  const inpName = document.getElementById('inpName');
+  const inpWs = document.getElementById('inpWs');
+  const inpFriendCode = document.getElementById('inpFriendCode');
+  const onlineState = document.getElementById('onlineState');
+
+  const pillConn = document.getElementById('pillConn');
+  const connText = document.getElementById('connText');
+  const micText = document.getElementById('micText');
+  const statusLine = document.getElementById('statusLine');
+
+  const joy = document.getElementById('joy');
+  const joyKnob = document.getElementById('joyKnob');
+
+  // Resize (CSS pixels)
+  let viewW = 0, viewH = 0;
+  function resize(){
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const r = canvas.getBoundingClientRect();
+    viewW = r.width;
+    viewH = r.height;
+    canvas.width = Math.floor(r.width * dpr);
+    canvas.height = Math.floor(r.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(() => resize());
+
+  // Voice-only (keep tiny state for UI)
+  const me = { muted:false };
+  const other = { name:'FRIEND', code:'', connected:false, lastSeen:0 };
+
+  // Audio output (remote voice)
+  let audioCtx = null;
+  function ensureAudioCtx(){
+    if (audioCtx) return audioCtx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+    return audioCtx;
+  }
+
+  // WebRTC
+  let pc = null;
+  let localStream = null;
+  let remoteStream = null;
+  let dc = null; // data channel for positions
+  let role = 'none'; // host | join
+  let remoteGain = null;
+  let remoteSource = null;
+
+  // Online signaling (optional)
+  let ws = null;
+  let wsOk = false;
+  let inCallWith = null; // friendCode
+  let pendingFriend = null; // friendCode
+
+  // Identity + friends (local)
+  const LS_NAME = 'vca_name';
+  const LS_CODE = 'vca_code';
+  const LS_FRIENDS = 'vca_friends';
+  function randCode(){
+    // short code like ABCD-1234 (not secret, just an ID)
+    const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let s1 = '', s2 = '';
+    for (let i=0;i<4;i++) s1 += A[Math.floor(Math.random()*A.length)];
+    for (let i=0;i<4;i++) s2 += A[Math.floor(Math.random()*A.length)];
+    return s1 + '-' + s2;
+  }
+  function loadFriends(){
+    try{
+      const raw = localStorage.getItem(LS_FRIENDS) || '[]';
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    }catch(e){ return []; }
+  }
+  function saveFriends(list){
+    try{ localStorage.setItem(LS_FRIENDS, JSON.stringify(list || [])); }catch(e){}
+  }
+  function normCode(s){
+    return (s || '').toString().trim().toUpperCase().replace(/\s+/g,'');
+  }
+  function setOnlinePill(ok){
+    wsOk = !!ok;
+    onlineState.textContent = wsOk ? 'Online: ON' : 'Online: OFF';
+  }
+  function setBtnStates(){
+    btnOnlineDisconnect.disabled = !wsOk;
+    btnOnlineConnect.disabled = wsOk;
+    btnPlay.disabled = !wsOk;
+    btnAddFriend.disabled = false;
+  }
+
+  let my = { code:'', name:'YOU' };
+  function loadIdentity(){
+    let c = localStorage.getItem(LS_CODE);
+    if (!c){ c = randCode(); localStorage.setItem(LS_CODE, c); }
+    my.code = normCode(c);
+    txtMyCode.value = my.code;
+
+    const n = (localStorage.getItem(LS_NAME) || '').trim();
+    if (n) my.name = n.slice(0,18);
+    inpName.value = my.name === 'YOU' ? '' : my.name;
+  }
+
+  function renderFriends(){
+    const list = loadFriends();
+    friendsList.innerHTML = '';
+    if (!list.length){
+      friendsList.innerHTML = '<div class="mini">No friends yet. Paste a Friend Code above and click “Add Friend”.</div>';
+      return;
+    }
+    for (let i=0;i<list.length;i++){
+      const f = list[i];
+      const row = document.createElement('div');
+      row.className = 'friendItem';
+      const left = document.createElement('div');
+      left.style.minWidth = '0';
+      const name = document.createElement('div');
+      name.className = 'friendName';
+      name.textContent = f.name || 'Friend';
+      const code = document.createElement('div');
+      code.className = 'friendCode';
+      code.textContent = f.code || '';
+      left.appendChild(name);
+      left.appendChild(code);
+
+      const right = document.createElement('div');
+      right.className = 'friendRow';
+      right.style.justifyContent = 'flex-end';
+      right.style.gap = '8px';
+      const bPlay = document.createElement('button');
+      bPlay.className = 'primary';
+      bPlay.textContent = 'PLAY';
+      bPlay.disabled = !wsOk;
+      bPlay.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        inpFriendCode.value = f.code || '';
+        callFriend(f.code);
+      }, { passive:false });
+      const bRm = document.createElement('button');
+      bRm.className = 'danger';
+      bRm.textContent = 'Remove';
+      bRm.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const list2 = loadFriends().filter(x => normCode(x.code) !== normCode(f.code));
+        saveFriends(list2);
+        renderFriends();
+      }, { passive:false });
+      right.appendChild(bPlay);
+      right.appendChild(bRm);
+
+      row.appendChild(left);
+      row.appendChild(right);
+      friendsList.appendChild(row);
+    }
+  }
+
+  function setConnPill(ok, text){
+    connText.textContent = text;
+    const dot = pillConn.querySelector('.dot');
+    if (!dot) return;
+    dot.classList.remove('red');
+    if (!ok) dot.classList.add('red');
+  }
+
+  function setMicText(s){ micText.textContent = s; }
+  function setStatus(s){ statusLine.textContent = s; }
+
+  function safeParseJSON(s){
+    try { return JSON.parse(s); } catch(e){ return null; }
+  }
+
+  function wsSend(obj){
+    if (!ws || ws.readyState !== 1) return;
+    try{ ws.send(JSON.stringify(obj)); }catch(e){}
+  }
+
+  function disconnectOnline(){
+    try{ if (ws) ws.close(); }catch(e){}
+    ws = null;
+    setOnlinePill(false);
+    setBtnStates();
+    setStatus('Online disconnected.');
+  }
+
+  function connectOnline(){
+    const url = (inpWs.value || '').trim();
+    if (!url){
+      setStatus('Paste a signaling server URL (wss://...) to connect online.');
+      return;
+    }
+    try{ localStorage.setItem('vca_ws', url); }catch(e){}
+    const nm = (inpName.value || '').trim();
+    if (nm){
+      my.name = nm.slice(0,18);
+      try{ localStorage.setItem(LS_NAME, my.name); }catch(e){}
+    }
+
+    setStatus('Connecting online...');
+    try{
+      ws = new WebSocket(url);
+    }catch(e){
+      setStatus('That URL did not work. It must be a WebSocket URL like wss://...');
+      return;
+    }
+
+    ws.onopen = () => {
+      setOnlinePill(true);
+      setBtnStates();
+      setStatus('Online connected. Choose a friend and press PLAY.');
+      wsSend({ t:'hello', code: my.code, name: my.name });
+      // Try to enable audio output after a user gesture later; but we also poke resume here.
+      try{
+        const ac = ensureAudioCtx();
+        if (ac && ac.resume) ac.resume();
+      }catch(e){}
+    };
+    ws.onclose = () => {
+      disconnectOnline();
+    };
+    ws.onerror = () => {
+      setStatus('Online connection error.');
+    };
+    ws.onmessage = async (ev) => {
+      const msg = safeParseJSON(ev.data);
+      if (!msg || !msg.t) return;
+      if (msg.t === 'invite'){
+        // Friend is calling us; wait for offer next
+        pendingFriend = normCode(msg.from);
+        setStatus('Incoming friend call from ' + (msg.name || msg.from) + '...');
+      } else if (msg.t === 'offer'){
+        // We are the joiner
+        const from = normCode(msg.from);
+        const off = msg.desc;
+        if (!off || !off.type || !off.sdp) return;
+        inCallWith = from;
+        role = 'join';
+        cleanup(false);
+        setConnPill(false, 'Connecting (friend)...');
+        mkPeer();
+        await getMic();
+        const tracks = localStream.getAudioTracks();
+        for (let i=0;i<tracks.length;i++){
+          pc.addTrack(tracks[i], localStream);
+        }
+        await pc.setRemoteDescription(off);
+        const ans = await pc.createAnswer();
+        await pc.setLocalDescription(ans);
+        await waitIceComplete();
+        wsSend({ t:'answer', to: from, from: my.code, desc: pc.localDescription });
+        setStatus('Sent answer. Connecting...');
+      } else if (msg.t === 'answer'){
+        // We are the host
+        const from = normCode(msg.from);
+        if (!pc || role !== 'host') return;
+        if (inCallWith && from !== inCallWith) return;
+        const ans = msg.desc;
+        if (!ans || !ans.type || !ans.sdp) return;
+        try{
+          await pc.setRemoteDescription(ans);
+          setStatus('Friend answered. Connecting...');
+        }catch(e){}
+      } else if (msg.t === 'leave'){
+        const from = normCode(msg.from);
+        if (inCallWith && from === inCallWith){
+          fullReset();
+        }
+      }
+    };
+  }
+
+  function mkPeer(){
+    // STUN helps NAT traversal; works when you host online.
+    const cfg = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
+    pc = new RTCPeerConnection(cfg);
+
+    pc.onconnectionstatechange = () => {
+      const st = pc ? pc.connectionState : 'closed';
+      if (st === 'connected'){
+        setConnPill(true, 'Connected: voice + game');
+        other.connected = true;
+        btnMute.disabled = false;
+        overlay.classList.add('hidden');
+      } else if (st === 'connecting'){
+        setConnPill(false, 'Connecting...');
+      } else if (st === 'failed'){
+        setConnPill(false, 'Connection failed (try Reset)');
+      } else if (st === 'disconnected'){
+        setConnPill(false, 'Disconnected');
+        other.connected = false;
+        overlay.classList.remove('hidden');
+      } else {
+        setConnPill(false, 'Not connected');
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      const st = pc ? pc.iceConnectionState : '';
+      if (st === 'failed'){
+        setStatus('ICE failed. Try Reset, and make sure both devices are online.');
+      }
+    };
+
+    pc.ontrack = (ev) => {
+      if (!remoteStream) remoteStream = new MediaStream();
+      remoteStream.addTrack(ev.track);
+      hookRemoteAudio();
+    };
+
+    pc.ondatachannel = (ev) => {
+      dc = ev.channel;
+      hookDataChannel();
+    };
+
+    pc.onicecandidate = () => {
+      // we output final codes only after ICE gathering complete
+    };
+  }
+
+  async function getMic(){
+    if (localStream) return localStream;
+    try{
+      localStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
+        video: false
+      });
+      setMicText('Mic: ON');
+      btnMute.disabled = false;
+      return localStream;
+    }catch(e){
+      setMicText('Mic: blocked');
+      setStatus('Mic permission blocked. Please allow microphone and reload.');
+      throw e;
+    }
+  }
+
+  function setMuted(on){
+    me.muted = !!on;
+    btnMute.textContent = me.muted ? 'Unmute Mic' : 'Mute Mic';
+    if (localStream){
+      const tracks = localStream.getAudioTracks();
+      for (let i=0;i<tracks.length;i++){
+        tracks[i].enabled = !me.muted;
+      }
+    }
+  }
+
+  function hookRemoteAudio(){
+    // Use WebAudio so we can apply distance-based volume.
+    try{
+      const ac = ensureAudioCtx();
+      if (ac.state === 'suspended'){
+        // user can click "Enable Audio Output"
+      }
+      if (remoteSource) { try{ remoteSource.disconnect(); }catch(e){} }
+      if (remoteGain) { try{ remoteGain.disconnect(); }catch(e){} }
+
+      remoteSource = ac.createMediaStreamSource(remoteStream);
+      remoteGain = ac.createGain();
+      remoteGain.gain.value = 0.9;
+      remoteSource.connect(remoteGain);
+      remoteGain.connect(ac.destination);
+      setStatus('Remote audio ready. Tip: use headphones.');
+    }catch(e){
+      // fallback: create an <audio> element
+      const a = document.createElement('audio');
+      a.autoplay = true;
+      a.playsInline = true;
+      a.srcObject = remoteStream;
+      a.volume = 0.9;
+      document.body.appendChild(a);
+      setStatus('Remote audio ready.');
+    }
+  }
+
+  function hookDataChannel(){
+    if (!dc) return;
+    dc.onopen = () => {
+      setStatus('Data channel open (positions syncing).');
+      other.connected = true;
+      // send identity so friend UI can show a name and code
+      try{ dc.send(JSON.stringify({ t:'hello', name: my.name, code: my.code })); }catch(e){}
+    };
+    dc.onclose = () => {
+      setStatus('Data channel closed.');
+      other.connected = false;
+    };
+    dc.onmessage = (ev) => {
+      const msg = safeParseJSON(ev.data);
+      if (!msg) return;
+      if (msg.t === 'hello'){
+        other.lastSeen = performance.now();
+        if (msg.name) other.name = (''+msg.name).slice(0,18);
+        if (msg.code) other.code = normCode(msg.code);
+      }
+    };
+  }
+
+  function waitIceComplete(){
+    return new Promise((resolve) => {
+      if (!pc) return resolve();
+      if (pc.iceGatheringState === 'complete') return resolve();
+      const onchg = () => {
+        if (!pc) return;
+        if (pc.iceGatheringState === 'complete'){
+          pc.removeEventListener('icegatheringstatechange', onchg);
+          resolve();
+        }
+      };
+      pc.addEventListener('icegatheringstatechange', onchg);
+      // safety: also resolve after a while
+      setTimeout(() => resolve(), 3500);
+    });
+  }
+
+  function formatCode(desc){
+    // Keep only the description, since it includes gathered ICE candidates (after complete).
+    return JSON.stringify(desc);
+  }
+
+  async function startHosting(){
+    role = 'host';
+    cleanup(false);
+    setConnPill(false, 'Preparing host...');
+    setStatus('Requesting microphone...');
+    mkPeer();
+    await getMic();
+
+    // add audio track(s)
+    const tracks = localStream.getAudioTracks();
+    for (let i=0;i<tracks.length;i++){
+      pc.addTrack(tracks[i], localStream);
+    }
+
+    // create data channel for movement sync
+    dc = pc.createDataChannel('game', { ordered:false, maxRetransmits:0 });
+    hookDataChannel();
+
+    const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: false });
+    await pc.setLocalDescription(offer);
+    setStatus('Gathering connection info...');
+    await waitIceComplete();
+    txtOffer.value = formatCode(pc.localDescription);
+    btnCopyOffer.disabled = false;
+    btnFinish.disabled = false;
+    setConnPill(false, 'Host ready (send Offer)');
+    setStatus('Copy the Offer and send it to your friend.');
+  }
+
+  async function callFriend(code){
+    if (!wsOk){
+      setStatus('Connect Online first (needs a signaling server URL).');
+      return;
+    }
+    const fc = normCode(code || inpFriendCode.value);
+    if (!fc){
+      setStatus('Paste a Friend Code first.');
+      return;
+    }
+    if (fc === my.code){
+      setStatus('That is your own Friend Code.');
+      return;
+    }
+    // Start audio output as part of the PLAY gesture (mobile autoplay rules).
+    try{
+      const ac = ensureAudioCtx();
+      if (ac && ac.resume) await ac.resume();
+    }catch(e){}
+    inCallWith = fc;
+    role = 'host';
+    cleanup(false);
+    setConnPill(false, 'Calling friend...');
+    mkPeer();
+    await getMic();
+
+    const tracks = localStream.getAudioTracks();
+    for (let i=0;i<tracks.length;i++){
+      pc.addTrack(tracks[i], localStream);
+    }
+
+    // create data channel for movement sync
+    dc = pc.createDataChannel('game', { ordered:false, maxRetransmits:0 });
+    hookDataChannel();
+
+    wsSend({ t:'invite', to: fc, from: my.code, name: my.name });
+    const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: false });
+    await pc.setLocalDescription(offer);
+    await waitIceComplete();
+    wsSend({ t:'offer', to: fc, from: my.code, name: my.name, desc: pc.localDescription });
+    setStatus('Calling ' + fc + '... waiting for answer.');
+  }
+
+  async function joinRoom(){
+    role = 'join';
+    cleanup(false);
+    setConnPill(false, 'Preparing join...');
+    setStatus('Requesting microphone...');
+    mkPeer();
+    await getMic();
+    const tracks = localStream.getAudioTracks();
+    for (let i=0;i<tracks.length;i++){
+      pc.addTrack(tracks[i], localStream);
+    }
+
+    const off = safeParseJSON(txtOfferIn.value.trim());
+    if (!off || !off.type || !off.sdp){
+      setStatus('Offer JSON is missing or invalid.');
+      return;
+    }
+    await pc.setRemoteDescription(off);
+    const ans = await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+    setStatus('Gathering connection info...');
+    await waitIceComplete();
+    txtAnswer.value = formatCode(pc.localDescription);
+    btnCopyAnswer.disabled = false;
+    setConnPill(false, 'Joined (send Answer back)');
+    setStatus('Copy the Answer and send it back to the host.');
+  }
+
+  async function finishConnect(){
+    if (!pc) return;
+    const ans = safeParseJSON(txtAnswerIn.value.trim());
+    if (!ans || !ans.type || !ans.sdp){
+      setStatus('Answer JSON is missing or invalid.');
+      return;
+    }
+    await pc.setRemoteDescription(ans);
+    setStatus('Connecting...');
+    setConnPill(false, 'Connecting...');
+  }
+
+  async function copyToClipboard(text){
+    try{
+      await navigator.clipboard.writeText(text);
+      setStatus('Copied to clipboard!');
+    }catch(e){
+      // fallback: select
+      setStatus('Copy failed. Select text manually and copy.');
+    }
+  }
+
+  function cleanup(hard){
+    // hard=false keeps text fields
+    other.connected = false;
+    if (dc){ try{ dc.close(); }catch(e){} dc = null; }
+    if (pc){ try{ pc.close(); }catch(e){} pc = null; }
+    if (hard){
+      if (localStream){
+        const tracks = localStream.getTracks();
+        for (let i=0;i<tracks.length;i++){ try{ tracks[i].stop(); }catch(e){} }
+      }
+      localStream = null;
+      remoteStream = null;
+    }
+    setConnPill(false, 'Not connected');
+  }
+
+  function fullReset(){
+    cleanup(true);
+    role = 'none';
+    inCallWith = null;
+    pendingFriend = null;
+    txtOffer.value = '';
+    txtAnswer.value = '';
+    txtOfferIn.value = '';
+    txtAnswerIn.value = '';
+    btnCopyOffer.disabled = true;
+    btnCopyAnswer.disabled = true;
+    btnFinish.disabled = true;
+    btnMute.disabled = true;
+    overlay.classList.remove('hidden');
+    setMicText('Mic: not started');
+    setStatus('Reset. Choose Host or Join.');
+    setMuted(false);
+  }
+
+  // Controls
+  function key(e, down){
+    const k = (e.key || '').toLowerCase();
+    if (down && k === 'm'){ setMuted(!me.muted); }
+    if (down && k === 'r'){ fullReset(); }
+  }
+  window.addEventListener('keydown', (e) => key(e,true));
+  window.addEventListener('keyup', (e) => key(e,false));
+
+  // No joystick (voice-only)
+
+  // Buttons (use pointerdown for mobile reliability)
+  btnHost.addEventListener('pointerdown', async (e) => { e.preventDefault(); try{ await startHosting(); }catch(err){} }, { passive:false });
+  btnJoin.addEventListener('pointerdown', async (e) => { e.preventDefault(); try{ await joinRoom(); }catch(err){} }, { passive:false });
+  btnFinish.addEventListener('pointerdown', async (e) => { e.preventDefault(); try{ await finishConnect(); }catch(err){} }, { passive:false });
+  btnCopyOffer.addEventListener('pointerdown', async (e) => { e.preventDefault(); await copyToClipboard(txtOffer.value); }, { passive:false });
+  btnCopyAnswer.addEventListener('pointerdown', async (e) => { e.preventDefault(); await copyToClipboard(txtAnswer.value); }, { passive:false });
+  btnResetA.addEventListener('pointerdown', (e) => { e.preventDefault(); fullReset(); }, { passive:false });
+  btnResetB.addEventListener('pointerdown', (e) => { e.preventDefault(); fullReset(); }, { passive:false });
+  btnOnlineConnect.addEventListener('pointerdown', (e) => { e.preventDefault(); connectOnline(); }, { passive:false });
+  btnOnlineDisconnect.addEventListener('pointerdown', (e) => { e.preventDefault(); disconnectOnline(); }, { passive:false });
+  btnPlay.addEventListener('pointerdown', async (e) => { e.preventDefault(); try{ await callFriend(inpFriendCode.value); }catch(err){} }, { passive:false });
+  btnAddFriend.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const c = normCode(inpFriendCode.value);
+    if (!c){
+      setStatus('Paste a Friend Code to add.');
+      return;
+    }
+    if (c === my.code){
+      setStatus('You can’t add yourself.');
+      return;
+    }
+    const list = loadFriends();
+    const exists = list.some(x => normCode(x.code) === c);
+    if (exists){
+      setStatus('Friend already added.');
+      return;
+    }
+    const nm = prompt('Friend name?', 'Friend') || 'Friend';
+    list.push({ code: c, name: (''+nm).slice(0,18) });
+    saveFriends(list);
+    renderFriends();
+    setStatus('Friend added.');
+  }, { passive:false });
+  btnHow.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    alert(
+      'How to Play (2 Players):\n\n' +
+      'FRIENDS ONLY:\n' +
+      '- Add your friend using their Friend Code.\n' +
+      '- Connect Online (needs a signaling server URL).\n' +
+      '- Paste/choose friend code and press PLAY with Friend.\n\n' +
+      'NO SERVER? Use Manual Mode:\n' +
+      '- One person HOSTS, copies Offer, sends it.\n' +
+      '- Other person JOINS, pastes Offer, copies Answer, sends it back.\n' +
+      '- Host pastes Answer and clicks Finish.\n\n' +
+      'Controls:\n' +
+      '- Mute mic: M\n' +
+      '- Reset: R\n'
+    );
+  }, { passive:false });
+  btnMute.addEventListener('pointerdown', (e) => { e.preventDefault(); setMuted(!me.muted); }, { passive:false });
+
+  // Voice-only loop (just renders a nice background)
+  let last = performance.now();
+  function step(now){
+    requestAnimationFrame(step);
+    const dt = Math.min(0.05, (now - last)/1000);
+    last = now;
+    // keep remote volume steady
+    if (remoteGain) remoteGain.gain.value = 0.9;
+    // draw
+    draw(now, dt);
+  }
+
+  function draw(now, dt){
+    const W = viewW, H = viewH;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = 'rgba(0,0,0,0.10)';
+    ctx.fillRect(0,0,W,H);
+    // tiny animated glow so it feels alive
+    const t = now * 0.001;
+    const a = 0.08 + 0.03*Math.sin(t*1.3);
+    ctx.fillStyle = 'rgba(34,255,182,' + a.toFixed(3) + ')';
+    ctx.beginPath();
+    ctx.arc(W*0.5, H*0.55, Math.min(W,H)*0.22, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.arc(W*0.5, H*0.55, Math.min(W,H)*0.16, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(242,246,255,0.92)';
+    ctx.font = '1000 18px Verdana';
+    ctx.fillText('Friends Voice Chat', 18, 34);
+    ctx.fillStyle = 'rgba(242,246,255,0.78)';
+    ctx.font = '900 12px Verdana';
+    const who = other.connected ? ('Talking to: ' + (other.name || 'Friend')) : 'Not in a call';
+    ctx.fillText(who, 18, 54);
+
+    // show overlay hint if disconnected
+    if (!pc || (pc.connectionState !== 'connected')){
+      overlay.classList.remove('hidden');
+    }
+  }
+
+  // Start
+  setConnPill(false, 'Not connected');
+  setMicText('Mic: not started');
+  loadIdentity();
+  renderFriends();
+  try{
+    const prevWs = localStorage.getItem('vca_ws') || '';
+    if (prevWs) inpWs.value = prevWs;
+  }catch(e){}
+  setOnlinePill(false);
+  setBtnStates();
+  setStatus('Add a friend, then connect online to play with friends only.');
+  requestAnimationFrame(step);
+
+})();
+</script>
+</body>
+</html>
+
+

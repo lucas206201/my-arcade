@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Monopoly vs AI (6 AI)</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.08);
+      --panel2:rgba(255,255,255,0.04);
+      --border:rgba(255,255,255,0.14);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.75);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:
+        radial-gradient(900px 700px at 50% 25%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      color:var(--text);
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      overflow:hidden;
+      touch-action:none;
+      padding:18px 12px;
+    }
+    .wrap{
+      width:min(1200px, 96vw);
+      display:grid;
+      grid-template-columns: 1fr 380px;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 1040px){ .wrap{grid-template-columns:1fr} }
+    .card{
+      position:relative;
+      border-radius:16px;
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      box-shadow:0 24px 80px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      background:radial-gradient(1200px 700px at 50% 25%, #18244f 0%, #0a0d20 55%, #070914 100%);
+      touch-action:none;
+    }
+    .side{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .hud{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:900;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      min-width:190px;
+      text-align:center;
+      font-weight:900;
+    }
+    .btnRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    button{
+      border:0;
+      border-radius:14px;
+      padding:12px 12px;
+      cursor:pointer;
+      font: inherit;
+      font-weight:900;
+      color:#071019;
+      background:linear-gradient(45deg, var(--accent), #5bf7ff);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      transition: transform .08s ease, opacity .2s ease;
+      user-select:none;
+      touch-action: manipulation;
+    }
+    button:active{transform:scale(0.98)}
+    button.secondary{background:linear-gradient(45deg, var(--gold), #ffae4d)}
+    button.danger{background:linear-gradient(45deg, var(--danger), #ffae4d)}
+    button:disabled{opacity:0.45; cursor:not-allowed}
+    .help{
+      font-size:13px;
+      line-height:1.4;
+      color:var(--muted);
+    }
+    .log{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      max-height:320px;
+      overflow:auto;
+      font-size:13px;
+      line-height:1.35;
+    }
+    .log b{color:#eaffff}
+    .shop{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+    }
+    .shop h3{
+      margin:0 0 10px 0;
+      font-size:14px;
+      color:#eaffff;
+      letter-spacing:0.4px;
+    }
+    select{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.35);
+      color:var(--text);
+      font: inherit;
+      font-weight:800;
+      outline:none;
+    }
+    .overlay{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.82);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:16px;
+      z-index:10;
+    }
+    .overlay.hidden{display:none}
+    .panel{
+      width:min(820px, 92%);
+      background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(0,0,0,0.55));
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 30px 110px rgba(0,0,0,0.55);
+      text-align:center;
+    }
+    .panel h1{
+      margin:0 0 8px 0;
+      font-size:34px;
+      letter-spacing:0.6px;
+      color:#eaffff;
+      text-shadow:0 0 18px rgba(34,255,182,0.30);
+    }
+    .panel p{ margin: 8px 0 14px 0; font-size:14px; color:var(--muted); }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.35);
+      font-weight:900;
+      margin:0 2px;
+      color:var(--text);
+    }
+    .tiny{
+      font-size:12px;
+      opacity:0.9;
+      line-height:1.35;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c" width="900" height="900"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1>Monopoly vs AI</h1>
+          <p>Roll dice, buy properties, pay rent, and try not to go bankrupt.</p>
+          <p class="tiny">
+            This is a simplified Monopoly-style game (original code/art).<br/>
+            You are <b>You</b>. There are 6 AI players.
+          </p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px">
+            <button id="btnPlay">PLAY</button>
+            <button class="secondary" id="btnRules">Rules</button>
+          </div>
+          <p class="help" id="rules" style="display:none;margin-top:12px;text-align:left">
+            - Land on an unowned property: you may buy it.<br/>
+            - Land on an owned property: pay rent (more rent if the owner owns the full color set).<br/>
+            - If you own a full color set, you can build houses (rent goes up).<br/>
+            - Chance squares give random good/bad events.<br/>
+            - Jail: you lose a turn (or pay to leave).<br/>
+            - Last player not bankrupt wins.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card side">
+      <div class="hud">
+        <div class="row"><span>Turn</span><span class="pill" id="turn">Ready</span></div>
+        <div class="row"><span>Dice</span><span class="pill" id="dice">-</span></div>
+        <div class="row"><span>Your $</span><span class="pill" id="money">$1500</span></div>
+        <div class="row"><span>Status</span><span class="pill" id="status">Press Play</span></div>
+        <div class="btnRow">
+          <button id="btnRoll">Roll</button>
+          <button class="secondary" id="btnBuy">Buy</button>
+        </div>
+        <div class="btnRow">
+          <button class="secondary" id="btnBuild">Build</button>
+          <button class="danger" id="btnEnd">End Turn</button>
+        </div>
+      </div>
+
+      <div class="shop">
+        <h3>Build</h3>
+        <select id="buildSelect"></select>
+        <div class="help" style="margin-top:8px">Build costs depend on the property. Max 3 houses.</div>
+      </div>
+
+      <div class="log" id="log"></div>
+      <div class="help">Tip: owning all properties of a color doubles rent (and allows houses).</div>
+    </div>
+  </div>
+
+<script>
+// Monopoly vs AI (simplified)
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const overlay = document.getElementById('overlay');
+const btnPlay = document.getElementById('btnPlay');
+const btnRules = document.getElementById('btnRules');
+const rules = document.getElementById('rules');
+
+const turnEl = document.getElementById('turn');
+const diceEl = document.getElementById('dice');
+const moneyEl = document.getElementById('money');
+const statusEl = document.getElementById('status');
+const logEl = document.getElementById('log');
+
+const btnRoll = document.getElementById('btnRoll');
+const btnBuy = document.getElementById('btnBuy');
+const btnBuild = document.getElementById('btnBuild');
+const btnEnd = document.getElementById('btnEnd');
+const buildSelect = document.getElementById('buildSelect');
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const rand = (a,b) => a + Math.random()*(b-a);
+
+function resize(){
+  const max = Math.min(900, Math.floor(Math.min(window.innerWidth * 0.92, window.innerHeight * 0.86)));
+  const s = Math.max(520, max);
+  canvas.width = s;
+  canvas.height = s;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function setOverlayVisible(visible){
+  // Some mobile browsers can accidentally send taps to the canvas even when an overlay is shown.
+  // Make it explicit: when overlay is visible, canvas should not receive pointer events.
+  if (visible) overlay.classList.remove('hidden');
+  else overlay.classList.add('hidden');
+  canvas.style.pointerEvents = visible ? 'none' : 'auto';
+}
+
+// Board: 24 tiles around a rectangle (6 per side)
+const TILE_COUNT = 24;
+const GROUPS = [
+  { id:'cyan', color:'#00ffff' },
+  { id:'yellow', color:'#ffd84d' },
+  { id:'purple', color:'#be00be' },
+  { id:'green', color:'#2eea74' },
+  { id:'orange', color:'#ff7f00' },
+  { id:'blue', color:'#5bf7ff' },
+];
+
+function makeTiles(){
+  // Indices:
+  // 0 GO, 6 JAIL, 12 FREE, 18 GOTOJAIL
+  // chance: 3, 9, 15, 21
+  // tax: 5, 17
+  const tiles = [];
+  for (let i=0;i<TILE_COUNT;i++){
+    tiles.push({
+      i,
+      type:'empty',
+      name:`Tile ${i}`,
+      price:0,
+      baseRent:0,
+      group:null,
+      owner:null,  // player index
+      houses:0
+    });
+  }
+
+  const set = (i, patch) => Object.assign(tiles[i], patch);
+
+  set(0, { type:'go', name:'GO' });
+  set(6, { type:'jail', name:'JAIL' });
+  set(12, { type:'free', name:'FREE' });
+  set(18, { type:'goToJail', name:'GO TO JAIL' });
+
+  set(3, { type:'chance', name:'CHANCE' });
+  set(9, { type:'chance', name:'CHANCE' });
+  set(15, { type:'chance', name:'CHANCE' });
+  set(21, { type:'chance', name:'CHANCE' });
+
+  set(5, { type:'tax', name:'TAX', price:150 });
+  set(17, { type:'tax', name:'TAX', price:200 });
+
+  // Properties
+  const propSlots = [];
+  for (let i=1;i<TILE_COUNT;i++){
+    if ([3,5,6,9,12,15,17,18,21].includes(i)) continue;
+    propSlots.push(i);
+  }
+  // 15 properties on 24 tiles in this layout
+  const props = propSlots.slice(0, 15);
+  const groups = [
+    { id:'cyan', n:3, base:100 },
+    { id:'yellow', n:3, base:120 },
+    { id:'purple', n:3, base:140 },
+    { id:'green', n:2, base:160 },
+    { id:'orange', n:2, base:180 },
+    { id:'blue', n:2, base:200 },
+  ];
+
+  let pIndex = 0;
+  for (const g of groups){
+    for (let k=0;k<g.n;k++){
+      const idx = props[pIndex++];
+      const price = g.base + k*20;
+      const baseRent = Math.floor(price * 0.14);
+      set(idx, {
+        type:'property',
+        name:`${g.id.toUpperCase()} ${k+1}`,
+        price,
+        baseRent,
+        group:g.id,
+        owner:null,
+        houses:0
+      });
+    }
+  }
+  return tiles;
+}
+
+const tiles = makeTiles();
+
+const PLAYERS = [
+  { name:'You', color:'#ffffff', isAI:false },
+  { name:'AI Nova', color:'#22ffb6', isAI:true },
+  { name:'AI Zig', color:'#ff4d6d', isAI:true },
+  { name:'AI Mimi', color:'#ffd84d', isAI:true },
+  { name:'AI Orion', color:'#5bf7ff', isAI:true },
+  { name:'AI Pip', color:'#a2ff4d', isAI:true },
+  { name:'AI Roo', color:'#be00be', isAI:true },
+];
+
+let state = null;
+
+function newGame(){
+  // Reset ownership
+  for (const t of tiles){
+    t.owner = null;
+    t.houses = 0;
+  }
+  state = {
+    turn: 0,
+    phase: 'needRoll', // needRoll | canBuy | canEnd
+    lastRoll: null,
+    pendingBuyTile: null,
+    players: PLAYERS.map((p, idx) => ({
+      id: idx,
+      name: p.name,
+      color: p.color,
+      isAI: p.isAI,
+      alive: true,
+      pos: 0,
+      money: 1500,
+      jail: 0, // turns remaining in jail
+    })),
+  };
+  logEl.innerHTML = '';
+  log(`<b>New game!</b> You vs 6 AI.`);
+  setStatus('Your turn!');
+  updateUI();
+  render();
+}
+
+function alivePlayers(){
+  return state.players.filter(p => p.alive);
+}
+
+function current(){
+  return state.players[state.turn];
+}
+
+function setStatus(s){
+  statusEl.textContent = s;
+}
+
+function log(html){
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  // Safari-safe: Element.prepend isn't supported on some older browsers.
+  if (logEl.firstChild) logEl.insertBefore(div, logEl.firstChild);
+  else logEl.appendChild(div);
+}
+
+function rollDice(){
+  const a = 1 + Math.floor(Math.random()*6);
+  const b = 1 + Math.floor(Math.random()*6);
+  return { a,b, sum:a+b, dbl: a===b };
+}
+
+function groupInfo(groupId){
+  return GROUPS.find(g => g.id === groupId);
+}
+
+function ownsFullSet(ownerId, groupId){
+  const props = tiles.filter(t => t.type==='property' && t.group===groupId);
+  return props.length > 0 && props.every(t => t.owner === ownerId);
+}
+
+function propertyHouseCost(tile){
+  // simple: 50% of price / 3 rounded
+  return Math.max(30, Math.floor(tile.price * 0.18));
+}
+
+function calcRent(tile){
+  let rent = tile.baseRent;
+  if (tile.owner == null) return 0;
+  if (ownsFullSet(tile.owner, tile.group)) rent *= 2;
+  rent += tile.houses * Math.floor(tile.baseRent * 0.8);
+  return rent;
+}
+
+function pay(fromId, toId, amount, reason){
+  const from = state.players[fromId];
+  if (!from.alive) return;
+  amount = Math.floor(amount);
+  from.money -= amount;
+  if (toId != null){
+    const to = state.players[toId];
+    if (to.alive) to.money += amount;
+  }
+  log(`<b>${from.name}</b> pays <b>$${amount}</b>${toId != null ? ` to <b>${state.players[toId].name}</b>` : ''} (${reason}).`);
+  checkBankrupt(fromId);
+}
+
+function gain(pid, amount, reason){
+  const p = state.players[pid];
+  if (!p.alive) return;
+  amount = Math.floor(amount);
+  p.money += amount;
+  log(`<b>${p.name}</b> gets <b>$${amount}</b> (${reason}).`);
+}
+
+function checkBankrupt(pid){
+  const p = state.players[pid];
+  if (!p.alive) return;
+  if (p.money >= 0) return;
+  // Bankruptcy: lose all properties
+  p.alive = false;
+  for (const t of tiles){
+    if (t.owner === pid){
+      t.owner = null;
+      t.houses = 0;
+    }
+  }
+  log(`<span style="color:rgba(255,77,109,0.95)"><b>${p.name}</b> went BANKRUPT!</span>`);
+  // If you die, game ends
+  if (pid === 0){
+    setStatus('Game Over! You went bankrupt.');
+    setOverlayVisible(true);
+  }
+  // If only one alive remains, they win
+  const alive = alivePlayers();
+  if (alive.length === 1){
+    const winner = alive[0];
+    setStatus(`${winner.name} wins!`);
+    log(`<b>${winner.name}</b> wins the game!`);
+    setOverlayVisible(true);
+  }
+}
+
+function movePlayer(pid, steps){
+  const p = state.players[pid];
+  const old = p.pos;
+  let pos = (p.pos + steps) % TILE_COUNT;
+  // Passed GO?
+  if (pos < old){
+    gain(pid, 200, 'passed GO');
+  }
+  p.pos = pos;
+}
+
+function goToJail(pid){
+  const p = state.players[pid];
+  p.pos = 6; // jail tile
+  p.jail = 1; // lose 1 turn (simple)
+  log(`<b>${p.name}</b> goes to JAIL.`);
+}
+
+function doChance(pid){
+  const cards = [
+    { text:'Found money on the sidewalk.', effect: () => gain(pid, 120, 'Chance') },
+    { text:'Pay for snacks.', effect: () => pay(pid, null, 60, 'Chance') },
+    { text:'Go to JAIL.', effect: () => goToJail(pid) },
+    { text:'Advance to GO.', effect: () => { state.players[pid].pos = 0; gain(pid, 200, 'Chance (GO bonus)'); } },
+    { text:'Go back 3.', effect: () => { movePlayer(pid, TILE_COUNT - 3); } },
+  ];
+  const c = cards[Math.floor(Math.random()*cards.length)];
+  log(`<b>${state.players[pid].name}</b> draws CHANCE: <i>${c.text}</i>`);
+  c.effect();
+}
+
+function landOnTile(pid){
+  const p = state.players[pid];
+  const tile = tiles[p.pos];
+
+  if (tile.type === 'go'){
+    log(`<b>${p.name}</b> landed on GO.`);
+    return;
+  }
+  if (tile.type === 'free'){
+    log(`<b>${p.name}</b> is resting at FREE PARKING.`);
+    return;
+  }
+  if (tile.type === 'jail'){
+    log(`<b>${p.name}</b> is visiting JAIL.`);
+    return;
+  }
+  if (tile.type === 'goToJail'){
+    goToJail(pid);
+    return;
+  }
+  if (tile.type === 'tax'){
+    pay(pid, null, tile.price, 'Tax');
+    return;
+  }
+  if (tile.type === 'chance'){
+    doChance(pid);
+    return;
+  }
+  if (tile.type === 'property'){
+    if (tile.owner == null){
+      state.pendingBuyTile = tile.i;
+      state.phase = 'canBuy';
+      setStatus(`${p.name} landed on ${tile.name} ($${tile.price}).`);
+      return;
+    }
+    if (tile.owner === pid){
+      setStatus(`${p.name} landed on their own property.`);
+      return;
+    }
+    const rent = calcRent(tile);
+    pay(pid, tile.owner, rent, `rent (${tile.name})`);
+    return;
+  }
+}
+
+function endTurn(){
+  state.lastRoll = null;
+  state.pendingBuyTile = null;
+  state.phase = 'needRoll';
+  diceEl.textContent = '-';
+
+  // Advance to next alive player
+  let next = state.turn;
+  for (let i=0;i<state.players.length;i++){
+    next = (next + 1) % state.players.length;
+    if (state.players[next].alive) break;
+  }
+  state.turn = next;
+  updateUI();
+  render();
+  maybeAITurn();
+}
+
+function buyProperty(pid, tileIdx){
+  const p = state.players[pid];
+  const t = tiles[tileIdx];
+  if (!p.alive) return false;
+  if (t.type !== 'property') return false;
+  if (t.owner != null) return false;
+  if (p.money < t.price) return false;
+  p.money -= t.price;
+  t.owner = pid;
+  log(`<b>${p.name}</b> bought <b>${t.name}</b> for <b>$${t.price}</b>.`);
+  return true;
+}
+
+function buildHouse(pid, tileIdx){
+  const p = state.players[pid];
+  const t = tiles[tileIdx];
+  if (!p.alive) return false;
+  if (t.type !== 'property') return false;
+  if (t.owner !== pid) return false;
+  if (!ownsFullSet(pid, t.group)) return false;
+  if (t.houses >= 3) return false;
+  const cost = propertyHouseCost(t);
+  if (p.money < cost) return false;
+  p.money -= cost;
+  t.houses += 1;
+  log(`<b>${p.name}</b> built a house on <b>${t.name}</b> for <b>$${cost}</b> (houses: ${t.houses}).`);
+  return true;
+}
+
+function updateBuildDropdown(){
+  const p = state.players[0];
+  buildSelect.innerHTML = '';
+  const opts = [];
+  if (p && p.alive){
+    for (const t of tiles){
+      if (t.type !== 'property') continue;
+      if (t.owner !== 0) continue;
+      if (!ownsFullSet(0, t.group)) continue;
+      if (t.houses >= 3) continue;
+      const cost = propertyHouseCost(t);
+      opts.push({ idx:t.i, label:`${t.name} (houses ${t.houses}) - $${cost}` });
+    }
+  }
+  if (opts.length === 0){
+    const o = document.createElement('option');
+    o.textContent = 'No buildable properties';
+    o.value = '';
+    buildSelect.appendChild(o);
+    return;
+  }
+  for (const opt of opts){
+    const o = document.createElement('option');
+    o.value = String(opt.idx);
+    o.textContent = opt.label;
+    buildSelect.appendChild(o);
+  }
+}
+
+// -----------------------------
+// AI behavior
+// -----------------------------
+function aiReserve(p){
+  // Keep some money reserve; higher if already owning properties
+  const ownedCount = tiles.filter(t => t.owner === p.id).length;
+  return 120 + ownedCount * 15;
+}
+
+function aiMaybeBuy(pid){
+  const p = state.players[pid];
+  const tileIdx = state.pendingBuyTile;
+  if (tileIdx == null) return false;
+  const t = tiles[tileIdx];
+  const reserve = aiReserve(p);
+  if (p.money - t.price < reserve) return false;
+  return buyProperty(pid, tileIdx);
+}
+
+function aiMaybeBuild(pid){
+  const p = state.players[pid];
+  // Build at most one house per turn
+  // Find any property in a full set with <3 houses and affordable
+  const candidates = tiles.filter(t =>
+    t.type==='property' &&
+    t.owner===pid &&
+    ownsFullSet(pid, t.group) &&
+    t.houses < 3
+  );
+  // Prefer lower-house properties
+  candidates.sort((a,b) => a.houses - b.houses);
+  for (const t of candidates){
+    const cost = propertyHouseCost(t);
+    if (p.money - cost < aiReserve(p)) continue;
+    return buildHouse(pid, t.i);
+  }
+  return false;
+}
+
+function maybeAITurn(){
+  const p = current();
+  if (!p.alive) { endTurn(); return; }
+  if (!p.isAI) return;
+
+  // Simple AI: small delay for readability
+  setStatus(`${p.name} is thinking...`);
+  setTimeout(() => {
+    // Jail handling
+    if (p.jail > 0){
+      p.jail -= 1;
+      setStatus(`${p.name} is in jail and skips a turn.`);
+      log(`<b>${p.name}</b> skips a turn (JAIL).`);
+      endTurn();
+      return;
+    }
+
+    // Roll
+    const r = rollDice();
+    state.lastRoll = r;
+    diceEl.textContent = `${r.a} + ${r.b} = ${r.sum}`;
+    log(`<b>${p.name}</b> rolled <b>${r.sum}</b>.`);
+    movePlayer(p.id, r.sum);
+    landOnTile(p.id);
+    render();
+
+    // If unowned property, decide buy/skip
+    if (state.phase === 'canBuy'){
+      const bought = aiMaybeBuy(p.id);
+      if (bought){
+        state.phase = 'canEnd';
+        state.pendingBuyTile = null;
+      } else {
+        log(`<b>${p.name}</b> skipped buying.`);
+        state.phase = 'canEnd';
+        state.pendingBuyTile = null;
+      }
+    }
+
+    // Build maybe
+    aiMaybeBuild(p.id);
+
+    // End
+    state.phase = 'needRoll';
+    endTurn();
+  }, 600);
+}
+
+// -----------------------------
+// Rendering board
+// -----------------------------
+function tilePos(i){
+  // 6 per side around rectangle (including corners)
+  const n = 6;
+  const s = canvas.width;
+  const margin = s * 0.07;
+  const inner = s - margin*2;
+  const step = inner / (n-1);
+  // order: bottom row (0..5) left->right, right col (6..11) bottom->top,
+  // top row (12..17) right->left, left col (18..23) top->bottom
+  if (i <= 5){
+    return { x: margin + i*step, y: margin + inner };
+  }
+  if (i <= 11){
+    return { x: margin + inner, y: margin + inner - (i-6)*step };
+  }
+  if (i <= 17){
+    return { x: margin + inner - (i-12)*step, y: margin };
+  }
+  return { x: margin, y: margin + (i-18)*step };
+}
+
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const s = canvas.width;
+
+  // Background board
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(0,0,s,s);
+
+  // Inner square
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillRect(s*0.18, s*0.18, s*0.64, s*0.64);
+
+  // Tiles
+  const rTile = s*0.045;
+  for (const t of tiles){
+    const p = tilePos(t.i);
+    // tile base
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rTile, 0, Math.PI*2);
+    ctx.fill();
+
+    // property group ring
+    if (t.type==='property' && t.group){
+      const g = groupInfo(t.group);
+      ctx.strokeStyle = (g && g.color) ? g.color : '#ffffff';
+      ctx.lineWidth = Math.max(3, s*0.006);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, rTile*0.92, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    // owner dot
+    if (t.owner != null){
+      const owner = state.players[t.owner];
+      ctx.fillStyle = (owner && owner.color) ? owner.color : '#ffffff';
+      ctx.beginPath();
+      ctx.arc(p.x + rTile*0.55, p.y - rTile*0.55, rTile*0.22, 0, Math.PI*2);
+      ctx.fill();
+      // houses
+      if (t.houses > 0){
+        ctx.fillStyle = '#ffd84d';
+        for (let k=0;k<t.houses;k++){
+          ctx.fillRect(p.x - rTile*0.6 + k*(rTile*0.22), p.y + rTile*0.35, rTile*0.16, rTile*0.16);
+        }
+      }
+    }
+
+    // special tile label
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.font = `900 ${Math.floor(s*0.012)}px Verdana`;
+    ctx.textAlign = 'center';
+    if (t.type==='go') ctx.fillText('GO', p.x, p.y + 4);
+    else if (t.type==='jail') ctx.fillText('J', p.x, p.y + 4);
+    else if (t.type==='free') ctx.fillText('FREE', p.x, p.y + 4);
+    else if (t.type==='goToJail') ctx.fillText('→J', p.x, p.y + 4);
+    else if (t.type==='chance') ctx.fillText('?', p.x, p.y + 4);
+    else if (t.type==='tax') ctx.fillText('$', p.x, p.y + 4);
+  }
+  ctx.textAlign = 'left';
+
+  // Players tokens (stacked slightly)
+  for (const p of state.players){
+    if (!p.alive) continue;
+    const tp = tilePos(p.pos);
+    const idx = p.id;
+    const ox = (idx % 3) * (s*0.012) - s*0.012;
+    const oy = Math.floor(idx / 3) * (s*0.012) - s*0.012;
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = s*0.02;
+    ctx.beginPath();
+    ctx.arc(tp.x + ox, tp.y + oy, s*0.012, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // Center title
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = `900 ${Math.floor(s*0.04)}px Verdana`;
+  ctx.textAlign = 'center';
+  ctx.fillText('MONOPOLY', s/2, s*0.46);
+  ctx.font = `900 ${Math.floor(s*0.018)}px Verdana`;
+  ctx.fillStyle = 'rgba(242,246,255,0.75)';
+  ctx.fillText('vs AI', s/2, s*0.50);
+  ctx.textAlign = 'left';
+}
+
+// -----------------------------
+// UI / buttons
+// -----------------------------
+function updateUI(){
+  if (!state) return;
+  const p = current();
+  turnEl.textContent = p ? `${p.name}` : '—';
+  moneyEl.textContent = `$${state.players[0].money}`;
+  updateBuildDropdown();
+
+  // Enable buttons only on your turn and when alive
+  const you = state.players[0];
+  const yourTurn = (state.turn === 0) && you.alive && !overlay.classList.contains('hidden');
+  // if overlay visible due to game over, disable
+  const canInteract = (state.turn === 0) && you.alive && overlay.classList.contains('hidden');
+
+  btnRoll.disabled = !canInteract || state.phase !== 'needRoll';
+  btnBuy.disabled = !canInteract || state.phase !== 'canBuy';
+  btnEnd.disabled = !canInteract || state.phase === 'needRoll';
+  btnBuild.disabled = !canInteract;
+}
+
+btnRules.addEventListener('click', () => {
+  rules.style.display = (rules.style.display === 'none') ? 'block' : 'none';
+});
+
+function onPressPlay(e){
+  if (e) e.preventDefault();
+  setOverlayVisible(false);
+  newGame();
+}
+btnPlay.addEventListener('click', onPressPlay);
+btnPlay.addEventListener('pointerdown', onPressPlay);
+// Older mobile Safari sometimes doesn't dispatch click reliably.
+btnPlay.addEventListener('touchstart', onPressPlay);
+btnPlay.addEventListener('mousedown', onPressPlay);
+
+// Extra fallback: if the button can't be clicked for any reason, tapping the overlay starts the game.
+overlay.addEventListener('pointerdown', (e) => {
+  // Only when we're on the start screen (no active state yet)
+  if (state) return;
+  // Don't hijack taps on the Rules button (or other buttons)
+  const tag = (e.target && e.target.tagName) ? String(e.target.tagName).toLowerCase() : '';
+  if (tag === 'button') return;
+  onPressPlay(e);
+});
+
+btnRoll.addEventListener('click', () => {
+  const p = current();
+  if (!p || p.id !== 0) return;
+  if (p.jail > 0){
+    p.jail -= 1;
+    log(`<b>You</b> skip a turn (JAIL).`);
+    endTurn();
+    return;
+  }
+  const r = rollDice();
+  state.lastRoll = r;
+  diceEl.textContent = `${r.a} + ${r.b} = ${r.sum}`;
+  log(`<b>You</b> rolled <b>${r.sum}</b>.`);
+  movePlayer(0, r.sum);
+  landOnTile(0);
+  if (state.phase !== 'canBuy') state.phase = 'canEnd';
+  updateUI();
+  render();
+});
+
+btnBuy.addEventListener('click', () => {
+  const tileIdx = state.pendingBuyTile;
+  if (tileIdx == null) return;
+  const t = tiles[tileIdx];
+  const ok = buyProperty(0, tileIdx);
+  if (!ok){
+    log(`<b>You</b> couldn't buy ${t.name}.`);
+  }
+  state.pendingBuyTile = null;
+  state.phase = 'canEnd';
+  updateUI();
+  render();
+});
+
+btnBuild.addEventListener('click', () => {
+  const v = buildSelect.value;
+  if (!v) return;
+  const idx = Number(v);
+  const ok = buildHouse(0, idx);
+  if (!ok){
+    log(`<b>You</b> can't build there.`);
+  }
+  updateBuildDropdown();
+  updateUI();
+  render();
+});
+
+btnEnd.addEventListener('click', () => {
+  endTurn();
+});
+
+// Touch: tapping the board shows tile info in status
+canvas.addEventListener('pointerdown', (e) => {
+  if (!state) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  // Find closest tile
+  let best = null;
+  let bestD = Infinity;
+  for (const t of tiles){
+    const p = tilePos(t.i);
+    const dx = x - p.x, dy = y - p.y;
+    const d = dx*dx + dy*dy;
+    if (d < bestD){ bestD = d; best = t; }
+  }
+  if (!best) return;
+  if (bestD > (canvas.width*0.06)*(canvas.width*0.06)) return;
+  if (best.type === 'property'){
+    const owner = best.owner == null ? 'Unowned' : ((state.players[best.owner] && state.players[best.owner].name) ? state.players[best.owner].name : 'Unknown');
+    setStatus(`${best.name} • $${best.price} • rent $${calcRent(best)} • ${owner}`);
+  } else if (best.type === 'tax'){
+    setStatus(`${best.name} • pay $${best.price}`);
+  } else {
+    setStatus(best.name);
+  }
+});
+
+// Start screen visible
+render();
+updateUI();
+setOverlayVisible(true);
+
+</script>
+</body>
+</html>
+
+

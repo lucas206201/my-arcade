@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Turbo Coins Racing</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.08);
+      --panel2:rgba(255,255,255,0.04);
+      --border:rgba(255,255,255,0.14);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.75);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:
+        radial-gradient(900px 700px at 50% 25%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      color:var(--text);
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      overflow:hidden;
+      touch-action:none;
+      padding:18px 12px;
+    }
+    .wrap{
+      width:min(1100px, 96vw);
+      display:grid;
+      grid-template-columns: 1fr 340px;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
+    .card{
+      position:relative;
+      border-radius:16px;
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      box-shadow:0 24px 80px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      background:linear-gradient(180deg, #1b2a4e 0%, #0b1220 65%, #080c16 100%);
+      touch-action:none;
+    }
+    .side{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .hud{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:900;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      min-width:170px;
+      text-align:center;
+      font-weight:900;
+    }
+    .btnRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    button{
+      border:0;
+      border-radius:14px;
+      padding:12px 12px;
+      cursor:pointer;
+      font: inherit;
+      font-weight:900;
+      color:#071019;
+      background:linear-gradient(45deg, var(--accent), #5bf7ff);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      transition: transform .08s ease;
+      user-select:none;
+    }
+    button:active{transform:scale(0.98)}
+    button.secondary{background:linear-gradient(45deg, var(--gold), #ffae4d)}
+    button.danger{background:linear-gradient(45deg, var(--danger), #ffae4d)}
+
+    .help{
+      font-size:13px;
+      line-height:1.4;
+      color:var(--muted);
+    }
+
+    .controls{
+      display:none;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    .controls button{
+      padding:14px 10px;
+      font-size:18px;
+      border-radius:14px;
+      touch-action: manipulation;
+    }
+    @media (max-width: 980px){ .controls{display:grid} }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.82);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:16px;
+      z-index:10;
+    }
+    .overlay.hidden{display:none}
+    .panel{
+      width:min(720px, 92%);
+      background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(0,0,0,0.55));
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 30px 110px rgba(0,0,0,0.55);
+      text-align:center;
+    }
+    .panel h1{
+      margin:0 0 8px 0;
+      font-size:34px;
+      letter-spacing:0.6px;
+      color:#eaffff;
+      text-shadow:0 0 18px rgba(34,255,182,0.30);
+    }
+    .panel p{ margin: 8px 0 14px 0; font-size:14px; color:var(--muted); }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.35);
+      font-weight:900;
+      margin:0 2px;
+      color:var(--text);
+    }
+
+    .shop{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+    }
+    .shop h3{
+      margin:0 0 8px 0;
+      font-size:14px;
+      letter-spacing:0.5px;
+      color:#eaffff;
+    }
+    .shopItem{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.22);
+      margin-bottom:10px;
+    }
+    .carSwatch{
+      width:22px; height:22px; border-radius:6px;
+      border:1px solid rgba(255,255,255,0.14);
+      box-shadow:0 0 16px rgba(255,255,255,0.10);
+      flex:0 0 auto;
+      margin-right:10px;
+    }
+    .shopLeft{
+      display:flex;
+      align-items:flex-start;
+      gap:0;
+    }
+    .shopName{
+      font-weight:900;
+      font-size:14px;
+    }
+    .shopDesc{
+      margin-top:4px;
+      font-size:11px;
+      color:rgba(242,246,255,0.76);
+      font-weight:800;
+      line-height:1.25;
+    }
+    .tag{
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.30);
+      font-size:11px;
+      font-weight:900;
+      color:rgba(242,246,255,0.92);
+      margin-left:8px;
+      white-space:nowrap;
+    }
+    .tag.locked{ color:rgba(255,77,109,0.95); }
+    .tag.owned{ color:rgba(34,255,182,0.95); }
+    .tinyBtn{
+      padding:8px 10px;
+      border-radius:12px;
+      font-weight:900;
+      min-width:100px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c" width="960" height="600"></canvas>
+
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1 id="ovTitle">Turbo Coins Racing</h1>
+          <p id="ovText">Race, dodge traffic, collect coins, and buy faster cars!</p>
+          <p>
+            Controls: <span class="kbd">←</span><span class="kbd">→</span> or <span class="kbd">A</span><span class="kbd">D</span>.
+            Boost: <span class="kbd">Space</span>.
+          </p>
+          <div class="btnRow" style="margin-top:10px">
+            <button id="btnPlay">PLAY</button>
+            <button class="secondary" id="btnShop">SHOP</button>
+          </div>
+          <div id="homeOnly" class="help" style="margin-top:10px">
+            - Collect coins (+1) and survive as long as you can.<br/>
+            - Faster cars earn coins quicker (bonus).<br/>
+            - You can boost with Space (short cooldown).
+          </div>
+
+          <div id="shopOverlay" style="display:none;margin-top:12px;text-align:left">
+            <div class="row" style="margin-bottom:10px">
+              <span style="font-weight:900">Your Coins</span>
+              <span class="pill" id="shopCoins" style="min-width:110px">0</span>
+            </div>
+            <div id="shopOverlayList"></div>
+            <div class="btnRow" style="margin-top:12px">
+              <button class="secondary" id="btnBackHome">BACK</button>
+              <button id="btnPlayFromShop">PLAY</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card side">
+      <div class="hud">
+        <div class="row"><span>Distance</span><span class="pill" id="dist">0 m</span></div>
+        <div class="row"><span>Coins</span><span class="pill" id="coins">0</span></div>
+        <div class="row"><span>Speed</span><span class="pill" id="speed">0</span></div>
+        <div class="row"><span>Boost</span><span class="pill" id="boost">Ready</span></div>
+        <div class="btnRow">
+          <button class="secondary" id="btnPause">Pause</button>
+          <button class="danger" id="btnRestart">Restart</button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="btnLeft">←</button>
+        <button id="btnBoost" class="secondary">BOOST</button>
+        <button id="btnRight">→</button>
+      </div>
+
+      <div class="shop">
+        <h3>Garage (Cars)</h3>
+        <div id="shopList"></div>
+      </div>
+
+      <div class="help">
+        Tip: Buy a faster car to increase max speed and coin bonus.
+      </div>
+    </div>
+  </div>
+
+<script>
+// Turbo Coins Racing — single file canvas racer (no libraries)
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const overlay = document.getElementById('overlay');
+const ovTitle = document.getElementById('ovTitle');
+const ovText = document.getElementById('ovText');
+const btnPlay = document.getElementById('btnPlay');
+const btnShop = document.getElementById('btnShop');
+const homeOnlyEl = document.getElementById('homeOnly');
+const shopOverlayEl = document.getElementById('shopOverlay');
+const shopOverlayList = document.getElementById('shopOverlayList');
+const shopCoinsEl = document.getElementById('shopCoins');
+const btnBackHome = document.getElementById('btnBackHome');
+const btnPlayFromShop = document.getElementById('btnPlayFromShop');
+
+const distEl = document.getElementById('dist');
+const coinsEl = document.getElementById('coins');
+const speedEl = document.getElementById('speed');
+const boostEl = document.getElementById('boost');
+const btnPause = document.getElementById('btnPause');
+const btnRestart = document.getElementById('btnRestart');
+
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+const btnBoost = document.getElementById('btnBoost');
+
+const shopList = document.getElementById('shopList');
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const rand = (a,b) => a + Math.random()*(b-a);
+const now = () => performance.now();
+
+function resize(){
+  const maxW = Math.min(960, Math.floor(window.innerWidth * 0.96));
+  const maxH = Math.min(600, Math.floor(window.innerHeight * 0.86));
+  let w = maxW;
+  let h = Math.floor(w * 5/8);
+  if (h > maxH){ h = maxH; w = Math.floor(h * 8/5); }
+  canvas.width = Math.max(520, w);
+  canvas.height = Math.max(320, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// -----------------------------
+// Persistent economy
+// -----------------------------
+const LS_COINS = 'racingCoins';
+const LS_OWNED = 'racingOwnedCars';
+const LS_SELECTED = 'racingSelectedCar';
+
+let coins = Number(localStorage.getItem(LS_COINS) || '0');
+let ownedCars = (() => {
+  try {
+    const raw = localStorage.getItem(LS_OWNED);
+    const arr = raw ? JSON.parse(raw) : ['starter'];
+    return new Set(Array.isArray(arr) ? arr : ['starter']);
+  } catch {
+    return new Set(['starter']);
+  }
+})();
+let selectedCarId = localStorage.getItem(LS_SELECTED) || 'starter';
+if (!ownedCars.has(selectedCarId)) selectedCarId = 'starter';
+
+function saveEconomy(){
+  localStorage.setItem(LS_COINS, String(coins));
+  localStorage.setItem(LS_OWNED, JSON.stringify(Array.from(ownedCars)));
+  localStorage.setItem(LS_SELECTED, selectedCarId);
+}
+
+// -----------------------------
+// Cars (stats)
+// -----------------------------
+const CARS = [
+  { id:'starter', name:'Starter', cost:0, color:'#ffffff', maxSpeed:520, accel:1400, handling:12, coinBonus:1.0 },
+  { id:'mint', name:'Neon Mint', cost:80, color:'#22ffb6', maxSpeed:600, accel:1500, handling:13, coinBonus:1.08 },
+  { id:'gold', name:'Sun Gold', cost:140, color:'#ffd84d', maxSpeed:680, accel:1650, handling:14, coinBonus:1.15 },
+  { id:'lava', name:'Lava Rocket', cost:220, color:'#ff4d6d', maxSpeed:770, accel:1800, handling:14, coinBonus:1.25 },
+  { id:'shark', name:'Shark Speedster', cost:320, color:'#5bf7ff', maxSpeed:880, accel:1950, handling:15, coinBonus:1.40 },
+];
+function carById(id){ return CARS.find(c => c.id === id) || CARS[0]; }
+
+function renderShop(){
+  shopCoinsEl.textContent = String(coins);
+  renderShopInto(shopList);
+  renderShopInto(shopOverlayList);
+}
+
+function renderShopInto(container){
+  container.innerHTML = '';
+  for (const c of CARS){
+    const owned = ownedCars.has(c.id);
+    const selected = selectedCarId === c.id;
+
+    const row = document.createElement('div');
+    row.className = 'shopItem';
+
+    const left = document.createElement('div');
+    left.className = 'shopLeft';
+    left.innerHTML = `
+      <span class="carSwatch" style="background:${c.color}"></span>
+      <div>
+        <div class="shopName">${c.name}
+          <span class="tag ${owned ? 'owned' : 'locked'}">${owned ? (selected ? 'SELECTED' : 'OWNED') : (c.cost + ' COINS')}</span>
+        </div>
+        <div class="shopDesc">
+          Max: ${c.maxSpeed} • Accel: ${c.accel} • Bonus: x${c.coinBonus.toFixed(2)}
+        </div>
+      </div>
+    `;
+
+    const btn = document.createElement('button');
+    btn.className = 'secondary tinyBtn';
+    if (!owned){
+      btn.textContent = 'Buy';
+      btn.disabled = coins < c.cost;
+      btn.addEventListener('click', () => {
+        if (coins < c.cost) return;
+        coins -= c.cost;
+        ownedCars.add(c.id);
+        selectedCarId = c.id;
+        saveEconomy();
+        renderShop();
+        updateHUD();
+      });
+    } else {
+      btn.textContent = selected ? 'Using' : 'Select';
+      btn.disabled = selected;
+      btn.addEventListener('click', () => {
+        selectedCarId = c.id;
+        saveEconomy();
+        renderShop();
+      });
+    }
+
+    row.appendChild(left);
+    row.appendChild(btn);
+    container.appendChild(row);
+  }
+}
+
+// -----------------------------
+// Input
+// -----------------------------
+const keys = new Set();
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ') e.preventDefault();
+  keys.add(e.key);
+  if (!running || paused || gameOver) return;
+  if (e.key === ' ') tryBoost();
+});
+document.addEventListener('keyup', (e) => keys.delete(e.key));
+
+const hold = { left:false, right:false };
+function bindHold(el, which){
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); hold[which] = true; });
+  window.addEventListener('pointerup', () => { hold[which] = false; });
+  el.addEventListener('pointerleave', () => { hold[which] = false; });
+}
+bindHold(btnLeft, 'left');
+bindHold(btnRight, 'right');
+btnBoost.addEventListener('click', () => tryBoost());
+
+// -----------------------------
+// Game objects
+// -----------------------------
+let running = false;
+let paused = false;
+let gameOver = false;
+let lastT = 0;
+
+const road = {
+  laneCount: 3,
+  laneW: 0,
+  left: 0,
+  right: 0
+};
+
+const player = {
+  x: 0, y: 0,
+  w: 34, h: 56,
+  vx: 0,
+  speed: 0,
+  dist: 0,
+  coinsThisRun: 0,
+  boost: 0,          // 0..1
+  boostCooldown: 0,  // seconds
+  car: carById(selectedCarId)
+};
+
+const traffic = []; // {x,y,w,h,speed,color}
+const coinsDrop = []; // {x,y,r}
+const particles = [];
+
+function resetRun(){
+  player.car = carById(selectedCarId);
+  player.dist = 0;
+  player.coinsThisRun = 0;
+  player.speed = player.car.maxSpeed * 0.45;
+  player.vx = 0;
+  player.boost = 0;
+  player.boostCooldown = 0;
+
+  traffic.length = 0;
+  coinsDrop.length = 0;
+  particles.length = 0;
+
+  recomputeRoad();
+  player.x = (road.left + road.right) / 2;
+  player.y = canvas.height * 0.76;
+}
+
+function recomputeRoad(){
+  const w = canvas.width;
+  const h = canvas.height;
+  const roadW = Math.min(w * 0.58, 420);
+  road.left = (w - roadW) / 2;
+  road.right = road.left + roadW;
+  road.laneW = roadW / road.laneCount;
+  // car size scales slightly with canvas
+  player.w = Math.max(28, Math.min(38, Math.floor(w * 0.04)));
+  player.h = Math.floor(player.w * 1.6);
+}
+window.addEventListener('resize', () => {
+  resize();
+  recomputeRoad();
+});
+
+function spawnTraffic(){
+  const lane = Math.floor(rand(0, road.laneCount));
+  const x = road.left + lane * road.laneW + road.laneW/2;
+  traffic.push({
+    x,
+    y: -60,
+    w: player.w,
+    h: player.h,
+    speed: rand(120, 220) + player.dist * 0.02,
+    color: ['#ffd84d','#5bf7ff','#a2ff4d','#be00be','#ff7f00'][Math.floor(rand(0,5))]
+  });
+}
+
+function spawnCoin(){
+  const lane = Math.floor(rand(0, road.laneCount));
+  const x = road.left + lane * road.laneW + road.laneW/2;
+  coinsDrop.push({ x, y: -30, r: 10 });
+}
+
+function burst(x,y,col,n=12){
+  for (let i=0;i<n;i++){
+    particles.push({
+      x,y,
+      vx: rand(-240,240),
+      vy: rand(-260,100),
+      life: rand(0.25,0.7),
+      r: rand(2,4),
+      col
+    });
+  }
+}
+
+function rectHit(ax,ay,aw,ah, bx,by,bw,bh){
+  return Math.abs(ax-bx) * 2 < (aw+bw) && Math.abs(ay-by) * 2 < (ah+bh);
+}
+
+// -----------------------------
+// Boost
+// -----------------------------
+function tryBoost(){
+  if (player.boostCooldown > 0) return;
+  player.boost = 1;
+  player.boostCooldown = 3.2;
+}
+
+// -----------------------------
+// Update + Draw
+// -----------------------------
+let trafficTimer = 0;
+let coinTimer = 0;
+
+function update(dt){
+  // Timers
+  trafficTimer -= dt;
+  coinTimer -= dt;
+  if (trafficTimer <= 0){
+    trafficTimer = rand(0.65, 1.0) * clamp(1.0 - player.dist * 0.00005, 0.45, 1.0);
+    spawnTraffic();
+  }
+  if (coinTimer <= 0){
+    coinTimer = rand(0.35, 0.65);
+    if (Math.random() < 0.85) spawnCoin();
+  }
+
+  // Controls
+  const left = keys.has('ArrowLeft') || keys.has('a') || keys.has('A') || hold.left;
+  const right = keys.has('ArrowRight') || keys.has('d') || keys.has('D') || hold.right;
+  const steer = (left ? -1 : 0) + (right ? 1 : 0);
+
+  // Boost handling
+  if (player.boost > 0){
+    player.boost = Math.max(0, player.boost - dt * 1.2);
+  }
+  player.boostCooldown = Math.max(0, player.boostCooldown - dt);
+
+  const boostMul = 1 + player.boost * 0.55;
+  const targetSpeed = player.car.maxSpeed * (0.48 + 0.18 * clamp(player.dist * 0.00003, 0, 1)) * boostMul;
+  // Smooth speed
+  player.speed += (targetSpeed - player.speed) * (1 - Math.pow(0.002, dt));
+
+  // Steering
+  const handling = player.car.handling;
+  player.vx += steer * handling * 900 * dt;
+  player.vx *= Math.pow(0.80, dt*60);
+  player.x += player.vx * dt;
+
+  // Clamp to road
+  const leftBound = road.left + player.w*0.55;
+  const rightBound = road.right - player.w*0.55;
+  player.x = clamp(player.x, leftBound, rightBound);
+
+  // Distance
+  player.dist += player.speed * dt * 0.12; // meters-ish
+
+  // Coin bonus from car
+  const coinBonus = player.car.coinBonus;
+
+  // Move traffic/coins down (relative to player speed)
+  for (let i=traffic.length-1;i>=0;i--){
+    const t = traffic[i];
+    t.y += (player.speed + t.speed) * dt * 0.55;
+    if (t.y > canvas.height + 80) traffic.splice(i,1);
+    else {
+      // collision
+      if (rectHit(player.x, player.y, player.w, player.h, t.x, t.y, t.w, t.h)){
+        gameOver = true;
+        burst(player.x, player.y, '#ff4d6d', 40);
+        endRun(false);
+        return;
+      }
+    }
+  }
+
+  for (let i=coinsDrop.length-1;i>=0;i--){
+    const c = coinsDrop[i];
+    c.y += player.speed * dt * 0.55;
+    if (c.y > canvas.height + 60) coinsDrop.splice(i,1);
+    else {
+      const hit = rectHit(player.x, player.y, player.w, player.h, c.x, c.y, c.r*2, c.r*2);
+      if (hit){
+        coinsDrop.splice(i,1);
+        player.coinsThisRun += 1;
+        coins += Math.max(1, Math.round(coinBonus)); // bonus-based coin payout
+        saveEconomy();
+        burst(c.x, c.y, '#ffd84d', 14);
+      }
+    }
+  }
+
+  // Particles
+  for (let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= Math.pow(0.88, dt*60);
+    p.vy *= Math.pow(0.88, dt*60);
+    if (p.life <= 0) particles.splice(i,1);
+  }
+
+  updateHUD();
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Sky glow
+  const bg = ctx.createRadialGradient(canvas.width*0.5, canvas.height*0.15, 10, canvas.width*0.5, canvas.height*0.15, canvas.width*0.8);
+  bg.addColorStop(0, 'rgba(91,247,255,0.10)');
+  bg.addColorStop(1, 'rgba(0,0,0,0.0)');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Road
+  ctx.fillStyle = 'rgba(0,0,0,0.42)';
+  ctx.fillRect(road.left, 0, road.right-road.left, canvas.height);
+  // Road edges
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(road.left, 0);
+  ctx.lineTo(road.left, canvas.height);
+  ctx.moveTo(road.right, 0);
+  ctx.lineTo(road.right, canvas.height);
+  ctx.stroke();
+
+  // Lane lines (animated)
+  const dashH = 40;
+  const dashGap = 28;
+  const speedScroll = (player.speed * 0.55) % (dashH + dashGap);
+  ctx.strokeStyle = 'rgba(255,255,255,0.20)';
+  ctx.lineWidth = 3;
+  for (let lane=1; lane<road.laneCount; lane++){
+    const x = road.left + lane * road.laneW;
+    for (let y=-dashH; y<canvas.height + dashH; y += dashH + dashGap){
+      const yy = y + speedScroll;
+      ctx.beginPath();
+      ctx.moveTo(x, yy);
+      ctx.lineTo(x, yy + dashH);
+      ctx.stroke();
+    }
+  }
+
+  // Coins
+  for (const c of coinsDrop){
+    ctx.shadowColor = '#ffd84d';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#ffd84d';
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.beginPath();
+    ctx.arc(c.x - 3, c.y - 3, 3, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Traffic
+  for (const t of traffic){
+    drawCar(t.x, t.y, t.w, t.h, t.color, false);
+  }
+
+  // Player
+  drawCar(player.x, player.y, player.w, player.h, player.car.color, true);
+
+  // Particles
+  for (const p of particles){
+    ctx.globalAlpha = clamp(p.life / 0.7, 0, 1);
+    ctx.fillStyle = p.col;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawCar(x,y,w,h,col,isPlayer){
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + h*0.52, w*0.55, h*0.15, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // body
+  ctx.fillStyle = col;
+  ctx.shadowColor = col;
+  ctx.shadowBlur = isPlayer ? 16 : 10;
+  roundRect(x - w/2, y - h/2, w, h, Math.max(8, w*0.25), true, false);
+  ctx.shadowBlur = 0;
+
+  // windshield
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  roundRect(x - w*0.26, y - h*0.30, w*0.52, h*0.28, 10, true, false);
+
+  // headlights/taillights
+  ctx.fillStyle = isPlayer ? 'rgba(255,255,255,0.75)' : 'rgba(255,77,109,0.75)';
+  ctx.beginPath();
+  ctx.arc(x - w*0.22, y - h*0.40, 3, 0, Math.PI*2);
+  ctx.arc(x + w*0.22, y - h*0.40, 3, 0, Math.PI*2);
+  ctx.fill();
+
+  // boost flames
+  if (isPlayer && player.boost > 0){
+    ctx.fillStyle = 'rgba(255,216,77,0.85)';
+    ctx.beginPath();
+    ctx.arc(x - w*0.18, y + h*0.55, 5 + player.boost*4, 0, Math.PI*2);
+    ctx.arc(x + w*0.18, y + h*0.55, 5 + player.boost*4, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function roundRect(x,y,w,h,r, fill, stroke){
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y);
+  ctx.lineTo(x+w-rr, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
+  ctx.lineTo(x+w, y+h-rr);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+  ctx.lineTo(x+rr, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
+  ctx.lineTo(x, y+rr);
+  ctx.quadraticCurveTo(x, y, x+rr, y);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
+}
+
+function updateHUD(){
+  distEl.textContent = `${Math.floor(player.dist)} m`;
+  coinsEl.textContent = String(coins);
+  speedEl.textContent = `${Math.floor(player.speed)}`;
+  boostEl.textContent = player.boostCooldown > 0 ? `${player.boostCooldown.toFixed(1)}s` : 'Ready';
+  shopCoinsEl.textContent = String(coins);
+}
+
+function endRun(won){
+  // Run ends: show overlay with coins gained this run.
+  const earned = Math.floor(player.coinsThisRun * player.car.coinBonus);
+  ovTitle.textContent = 'CRASH!';
+  ovText.innerHTML = `Distance: <b>${Math.floor(player.dist)} m</b><br/>Coins collected: <b>${player.coinsThisRun}</b><br/><br/>Go to SHOP to buy a faster car!`;
+  btnPlay.textContent = 'Play Again';
+  overlay.classList.remove('hidden');
+  renderShop();
+}
+
+function start(){
+  resetRun();
+  running = true;
+  paused = false;
+  gameOver = false;
+  lastT = 0;
+  overlay.classList.add('hidden');
+  btnPause.textContent = 'Pause';
+  updateHUD();
+}
+
+btnPlay.addEventListener('click', start);
+btnPlayFromShop.addEventListener('click', start);
+btnShop.addEventListener('click', () => {
+  homeOnlyEl.style.display = 'none';
+  shopOverlayEl.style.display = 'block';
+  renderShop();
+});
+btnBackHome.addEventListener('click', () => {
+  shopOverlayEl.style.display = 'none';
+  homeOnlyEl.style.display = 'block';
+});
+
+btnPause.addEventListener('click', () => {
+  if (!running) return;
+  if (gameOver) return;
+  paused = !paused;
+  btnPause.textContent = paused ? 'Resume' : 'Pause';
+});
+btnRestart.addEventListener('click', () => start());
+
+function frame(t){
+  requestAnimationFrame(frame);
+  if (!running){ draw(); return; }
+  if (paused || gameOver){ draw(); return; }
+  if (!lastT) lastT = t;
+  const dt = Math.min(0.033, (t - lastT) / 1000);
+  lastT = t;
+  update(dt);
+  draw();
+}
+requestAnimationFrame(frame);
+
+// init
+recomputeRoad();
+renderShop();
+updateHUD();
+
+</script>
+</body>
+</html>
+
+

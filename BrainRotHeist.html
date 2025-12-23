@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Steal-a-Brain Rot</title>
+  <style>
+    :root{
+      --bg:#070914;
+      --panel:rgba(255,255,255,0.08);
+      --panel2:rgba(255,255,255,0.04);
+      --border:rgba(255,255,255,0.14);
+      --text:#f2f6ff;
+      --muted:rgba(242,246,255,0.75);
+      --accent:#22ffb6;
+      --gold:#ffd84d;
+      --danger:#ff4d6d;
+      --purple:#be00be;
+      --cyan:#5bf7ff;
+      --lime:#a2ff4d;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:
+        radial-gradient(900px 700px at 50% 25%, rgba(34,255,182,0.12) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 80% 75%, rgba(255,216,77,0.10) 0%, rgba(7,9,20,0) 60%),
+        radial-gradient(900px 650px at 20% 85%, rgba(190,0,190,0.12) 0%, rgba(7,9,20,0) 60%),
+        var(--bg);
+      color:var(--text);
+      font-family: Verdana, "Comic Sans MS", system-ui, sans-serif;
+      overflow:hidden;
+      touch-action:none;
+      padding:18px 12px;
+    }
+    .wrap{
+      width:min(1100px, 96vw);
+      display:grid;
+      grid-template-columns: 1fr 340px;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
+    .card{
+      position:relative;
+      border-radius:16px;
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      box-shadow:0 24px 80px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      background:
+        radial-gradient(1100px 700px at 50% 15%, rgba(91,247,255,0.10) 0%, rgba(7,9,20,0) 55%),
+        radial-gradient(1200px 800px at 30% 80%, rgba(190,0,190,0.10) 0%, rgba(7,9,20,0) 55%),
+        radial-gradient(1200px 800px at 85% 85%, rgba(255,216,77,0.08) 0%, rgba(7,9,20,0) 55%),
+        linear-gradient(180deg, #141a3a 0%, #090b1a 70%, #070914 100%);
+      touch-action:none;
+    }
+    .side{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .hud{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:900;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      min-width:170px;
+      text-align:center;
+      font-weight:900;
+    }
+    .btnRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    button{
+      border:0;
+      border-radius:14px;
+      padding:12px 12px;
+      cursor:pointer;
+      font: inherit;
+      font-weight:900;
+      color:#071019;
+      background:linear-gradient(45deg, var(--accent), #5bf7ff);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      transition: transform .08s ease, opacity .2s ease;
+      user-select:none;
+      touch-action: manipulation;
+    }
+    button:active{transform:scale(0.98)}
+    button.secondary{background:linear-gradient(45deg, var(--gold), #ffae4d)}
+    button.danger{background:linear-gradient(45deg, var(--danger), #ffae4d)}
+    button:disabled{opacity:0.45; cursor:not-allowed}
+    .help{
+      font-size:13px;
+      line-height:1.4;
+      color:var(--muted);
+    }
+    .overlay{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.82);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:16px;
+      z-index:10;
+    }
+    .overlay.hidden{display:none}
+    .panel{
+      width:min(720px, 92%);
+      background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(0,0,0,0.55));
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 30px 110px rgba(0,0,0,0.55);
+      text-align:center;
+    }
+    .panel h1{
+      margin:0 0 8px 0;
+      font-size:34px;
+      letter-spacing:0.6px;
+      color:#eaffff;
+      text-shadow:0 0 18px rgba(34,255,182,0.30);
+    }
+    .panel p{ margin: 8px 0 14px 0; font-size:14px; color:var(--muted); }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.35);
+      font-weight:900;
+      margin:0 2px;
+      color:var(--text);
+    }
+    .shop{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+    }
+    .shop h3{
+      margin:0 0 8px 0;
+      font-size:14px;
+      letter-spacing:0.5px;
+      color:#eaffff;
+    }
+    .shopItem{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.22);
+      margin-bottom:10px;
+      font-size:13px;
+      font-weight:900;
+    }
+    .shopItem small{
+      display:block;
+      font-size:11px;
+      font-weight:800;
+      opacity:0.8;
+      margin-top:2px;
+    }
+    .tag{
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.30);
+      font-size:11px;
+      font-weight:900;
+      color:rgba(242,246,255,0.92);
+      margin-left:8px;
+      white-space:nowrap;
+    }
+    .tag.locked{ color:rgba(255,77,109,0.95); }
+    .tag.owned{ color:rgba(34,255,182,0.95); }
+    .tinyBtn{
+      padding:8px 10px;
+      border-radius:12px;
+      font-weight:900;
+      min-width:92px;
+    }
+    .controls{
+      display:none;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    .controls button{ padding:14px 10px; font-size:18px; border-radius:14px; }
+    @media (max-width: 980px){ .controls{display:grid} }
+    .chat{
+      background:rgba(0,0,0,0.28);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+    }
+    .chat h3{
+      margin:0 0 8px 0;
+      font-size:14px;
+      letter-spacing:0.5px;
+      color:#eaffff;
+    }
+    .chatLog{
+      height:160px;
+      overflow:auto;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.22);
+      padding:10px;
+      font-size:13px;
+      line-height:1.35;
+    }
+    .chatLine{ margin:0 0 6px 0; word-break:break-word; }
+    .chatLine .who{ font-weight:900; color:#eaffff; }
+    .chatLine .you{ color:rgba(255,216,77,0.98); }
+    .chatLine .sys{ color:rgba(34,255,182,0.95); }
+    .chatInputRow{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+    }
+    .chatInput{
+      flex:1;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.35);
+      color:var(--text);
+      padding:10px 12px;
+      font: inherit;
+      font-weight:800;
+      outline:none;
+    }
+    .chatSend{ min-width:92px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="c" width="960" height="600"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h1 id="ovTitle">Steal-a-Brain Rot</h1>
+          <p id="ovText">Run around and steal Σ brainrot from NPCs… but don’t get “anti-rot” tagged.</p>
+          <p>
+            Move: <span class="kbd">WASD</span>/<span class="kbd">Arrows</span> • Dash: <span class="kbd">Space</span><br/>
+            On phones: use the big buttons.
+          </p>
+          <div class="btnRow" style="margin-top:10px">
+            <button id="btnPlay">PLAY</button>
+            <button class="secondary" id="btnShop">SHOP</button>
+          </div>
+          <div id="homeOnly" class="help" style="margin-top:10px;text-align:left">
+            - Touch an NPC to <b>steal</b> their brainrot (+score).<br/>
+            - Dodge guards. If they tag you, you lose a heart.<br/>
+            - Survive 90 seconds. Earn coins to buy upgrades + skins.
+          </div>
+          <div id="shopOverlay" style="display:none;margin-top:12px;text-align:left">
+            <div class="row" style="margin-bottom:10px">
+              <span style="font-weight:900">Your Coins</span>
+              <span class="pill" id="shopCoins" style="min-width:110px">0</span>
+            </div>
+            <div id="shopOverlayList"></div>
+            <div class="btnRow" style="margin-top:12px">
+              <button class="secondary" id="btnBackHome">BACK</button>
+              <button id="btnPlayFromShop">PLAY</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card side">
+      <div class="hud">
+        <div class="row"><span>Score</span><span class="pill" id="score">0</span></div>
+        <div class="row"><span>Hearts</span><span class="pill" id="hp">❤❤❤</span></div>
+        <div class="row"><span>Coins</span><span class="pill" id="coins">0</span></div>
+        <div class="row"><span>Sharks</span><span class="pill" id="sharks">0</span></div>
+        <div class="row"><span>Animals</span><span class="pill" id="animals">0</span></div>
+        <div class="row"><span>Time</span><span class="pill" id="time">1:30</span></div>
+        <div class="btnRow">
+          <button class="secondary" id="btnPause">Pause</button>
+          <button class="danger" id="btnRestart">Restart</button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="btnLeft">←</button>
+        <button id="btnDash" class="secondary">DASH</button>
+        <button id="btnRight">→</button>
+        <button id="btnUp">↑</button>
+        <button id="btnShop2" class="secondary">SHOP</button>
+        <button id="btnDown">↓</button>
+      </div>
+
+      <div class="shop">
+        <h3>Shop</h3>
+        <div id="shopList"></div>
+      </div>
+
+      <div class="chat">
+        <h3>Chat</h3>
+        <div class="chatLog" id="chatLog" aria-live="polite"></div>
+        <div class="chatInputRow">
+          <input class="chatInput" id="chatInput" maxlength="90" placeholder="Type chat…" />
+          <button class="secondary chatSend" id="chatSend">Send</button>
+        </div>
+        <div class="help" style="margin-top:8px">Local chat (no server). AI chat is simulated.</div>
+      </div>
+
+      <div class="help">
+        Local save (coins/upgrades) works on GitHub Pages.
+      </div>
+    </div>
+  </div>
+
+<script>
+// Steal-a-Brain Rot — single file canvas game (original code/art)
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const ovTitle = document.getElementById('ovTitle');
+const ovText = document.getElementById('ovText');
+const btnPlay = document.getElementById('btnPlay');
+const btnShop = document.getElementById('btnShop');
+const homeOnlyEl = document.getElementById('homeOnly');
+const shopOverlayEl = document.getElementById('shopOverlay');
+const shopOverlayList = document.getElementById('shopOverlayList');
+const shopCoinsEl = document.getElementById('shopCoins');
+const btnBackHome = document.getElementById('btnBackHome');
+const btnPlayFromShop = document.getElementById('btnPlayFromShop');
+const btnPause = document.getElementById('btnPause');
+const btnRestart = document.getElementById('btnRestart');
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+const btnUp = document.getElementById('btnUp');
+const btnDown = document.getElementById('btnDown');
+const btnDash = document.getElementById('btnDash');
+const btnShop2 = document.getElementById('btnShop2');
+
+const scoreEl = document.getElementById('score');
+const hpEl = document.getElementById('hp');
+const coinsEl = document.getElementById('coins');
+const sharksEl = document.getElementById('sharks');
+const animalsEl = document.getElementById('animals');
+const timeEl = document.getElementById('time');
+const shopList = document.getElementById('shopList');
+const chatLogEl = document.getElementById('chatLog');
+const chatInputEl = document.getElementById('chatInput');
+const chatSendEl = document.getElementById('chatSend');
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const rand = (a,b) => a + Math.random()*(b-a);
+const now = () => performance.now();
+
+// -----------------------------
+// Chat (local + AI chatter)
+// -----------------------------
+let chat = [];
+let nextAIChatAt = 0;
+
+function addChat(who, text, kind){
+  // kind: 'normal' | 'you' | 'sys'
+  chat.push({ who, text, kind: kind || 'normal', t: now() });
+  if (chat.length > 90) chat.shift();
+  renderChat();
+}
+
+function renderChat(){
+  chatLogEl.innerHTML = '';
+  for (const m of chat){
+    const div = document.createElement('div');
+    div.className = 'chatLine';
+    const whoSpan = document.createElement('span');
+    whoSpan.className = 'who' + (m.kind === 'you' ? ' you' : m.kind === 'sys' ? ' sys' : '');
+    whoSpan.textContent = (m.kind === 'sys') ? 'SYSTEM' : m.who;
+    const textSpan = document.createElement('span');
+    textSpan.textContent = `: ${m.text}`;
+    div.appendChild(whoSpan);
+    div.appendChild(textSpan);
+    chatLogEl.appendChild(div);
+  }
+  chatLogEl.scrollTop = chatLogEl.scrollHeight;
+}
+
+function sendChat(){
+  const raw = (chatInputEl.value || '').trim();
+  if (!raw) return;
+  chatInputEl.value = '';
+  addChat('You', raw, 'you');
+}
+chatSendEl.addEventListener('click', sendChat);
+chatInputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){
+    e.preventDefault();
+    sendChat();
+  }
+});
+
+function scheduleAIChat(){
+  nextAIChatAt = now() + rand(2200, 5200);
+}
+
+function aiChatTick(){
+  if (!running || paused || gameOver) return;
+  if (now() < nextAIChatAt) return;
+  // No thieves requested — use NPCs as "AI chat speakers"
+  if (!npcs || npcs.length === 0) return;
+  const s = npcs[Math.floor(rand(0, npcs.length))];
+  const lines = [
+    'sigma moment',
+    'who stole my rot??',
+    'guards are cringe',
+    'machine go brrrr',
+    'I got a BIG Σ',
+    'no tag pls',
+    'speedrun time',
+    'gg ez (maybe)',
+  ];
+  addChat(`NPC ${s.name}`, lines[Math.floor(rand(0, lines.length))], 'normal');
+  scheduleAIChat();
+}
+
+function fmtTime(ms){
+  const s = Math.max(0, Math.floor(ms/1000));
+  const m = Math.floor(s/60);
+  const ss = String(s%60).padStart(2,'0');
+  return `${m}:${ss}`;
+}
+
+function resize(){
+  const maxW = Math.min(960, Math.floor(window.innerWidth * 0.96));
+  const maxH = Math.min(600, Math.floor(window.innerHeight * 0.86));
+  let w = maxW;
+  let h = Math.floor(w * 5/8);
+  if (h > maxH){ h = maxH; w = Math.floor(h * 8/5); }
+  canvas.width = Math.max(520, w);
+  canvas.height = Math.max(320, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// -----------------------------
+// Persistent economy
+// -----------------------------
+const LS_COINS = 'brainRotCoins';
+const LS_OWNED = 'brainRotOwned';
+const LS_SKIN = 'brainRotSkin';
+const LS_UP = 'brainRotUpgrades';
+const LS_INV = 'brainRotInventory';
+const LS_SHARKS = 'brainRotSharksTotal';
+const LS_CRITTERS = 'brainRotCrittersTotal';
+
+// Coins use BigInt so we can support HUGE numbers exactly.
+function parseBigIntLoose(s, fallback){
+  try{
+    const digits = String(s ?? '').replace(/[^\d]/g, '');
+    if (!digits) return BigInt(fallback);
+    return BigInt(digits);
+  } catch {
+    return BigInt(fallback);
+  }
+}
+function fmtBigInt(n){
+  const neg = n < 0n;
+  let s = (neg ? (-n) : n).toString();
+  // add commas
+  let out = '';
+  for (let i=0;i<s.length;i++){
+    const j = s.length - i;
+    out += s[i];
+    if (j > 1 && (j-1) % 3 === 0) out += ',';
+  }
+  return neg ? '-' + out : out;
+}
+
+// Start with your huge number on a fresh save (commas are OK)
+const START_COINS_RAW = '100,000,000,000,000,000,000,000,000,000,00,000';
+const _coinsRaw = localStorage.getItem(LS_COINS);
+let coins = (_coinsRaw == null) ? parseBigIntLoose(START_COINS_RAW, 100000000n) : parseBigIntLoose(_coinsRaw, 100000000n);
+let owned = (() => {
+  try {
+    const raw = localStorage.getItem(LS_OWNED);
+    const arr = raw ? JSON.parse(raw) : ['classic'];
+    return new Set(Array.isArray(arr) ? arr : ['classic']);
+  } catch {
+    return new Set(['classic']);
+  }
+})();
+let skinId = localStorage.getItem(LS_SKIN) || 'classic';
+if (!owned.has(skinId)) skinId = 'classic';
+let upgrades = (() => {
+  try {
+    const raw = localStorage.getItem(LS_UP);
+    const obj = raw ? JSON.parse(raw) : { speed:0, dash:0, bonus:0, shield:0, machine:0 };
+    return {
+      speed: obj.speed|0,
+      dash: obj.dash|0,
+      bonus: obj.bonus|0,
+      shield: obj.shield|0,
+      machine: obj.machine|0
+    };
+  } catch {
+    return { speed:0, dash:0, bonus:0, shield:0, machine:0 };
+  }
+})();
+
+// Consumable inventory (brain rots you can buy/use)
+let inv = (() => {
+  try {
+    const raw = localStorage.getItem(LS_INV);
+    const obj = raw ? JSON.parse(raw) : {};
+    return (obj && typeof obj === 'object') ? obj : {};
+  } catch {
+    return {};
+  }
+})();
+
+let sharksTotal = Number(localStorage.getItem(LS_SHARKS) || '0');
+let crittersTotal = Number(localStorage.getItem(LS_CRITTERS) || '0');
+if (!Number.isFinite(sharksTotal)) sharksTotal = 0;
+if (!Number.isFinite(crittersTotal)) crittersTotal = 0;
+
+// Passive coin income
+const COINS_PER_SECOND_PER_ANIMAL = 3000000n; // "a few million" each
+let coinCarryMs = 0; // ms carry for BigInt income
+let lastAutoSaveAt = 0;
+
+function save(){
+  localStorage.setItem(LS_COINS, coins.toString());
+  localStorage.setItem(LS_OWNED, JSON.stringify(Array.from(owned)));
+  localStorage.setItem(LS_SKIN, skinId);
+  localStorage.setItem(LS_UP, JSON.stringify(upgrades));
+  localStorage.setItem(LS_INV, JSON.stringify(inv));
+  localStorage.setItem(LS_SHARKS, String(sharksTotal));
+  localStorage.setItem(LS_CRITTERS, String(crittersTotal));
+}
+
+const SKINS = [
+  { id:'classic', name:'Classic', cost:0,  col:'#ffffff', glow:'#ffffff' },
+  { id:'neonMint', name:'Neon Mint', cost:50, col:'#22ffb6', glow:'#22ffb6' },
+  { id:'sigmaPurple', name:'Sigma Purple', cost:80, col:'#be00be', glow:'#5bf7ff' },
+  { id:'golden', name:'Golden', cost:120, col:'#ffd84d', glow:'#ffd84d' },
+  { id:'lime', name:'Lime', cost:120, col:'#a2ff4d', glow:'#a2ff4d' },
+  { id:'sharkShoes', name:'Tralalero Tralala', cost:160, col:'#0066ff', glow:'#5bf7ff', pattern:'sharkShoes' },
+];
+
+const UPGRADES = [
+  { id:'speed', name:'Speed', base:60, desc:'Run faster', max:6 },
+  { id:'dash', name:'Dash', base:70, desc:'Shorter dash cooldown', max:6 },
+  { id:'bonus', name:'Coin Bonus', base:90, desc:'More coins after a run', max:6 },
+  { id:'shield', name:'Shield', base:110, desc:'Start with 1 hit shield', max:3 },
+  { id:'machine', name:'Machine Speed', base:120, desc:'Craft faster (Brain Rot Machine)', max:6 },
+];
+
+function upgradeCost(id){
+  const u = UPGRADES.find(x => x.id === id);
+  const lv = upgrades[id] || 0;
+  return Math.floor(u.base * Math.pow(1.45, lv));
+}
+
+function skinById(id){
+  for (const s of SKINS) if (s.id === id) return s;
+  return SKINS[0];
+}
+
+function invCount(id){
+  return Math.max(0, (inv[id] | 0));
+}
+function invAdd(id, n){
+  inv[id] = (inv[id] | 0) + (n | 0);
+  if (inv[id] < 0) inv[id] = 0;
+  save();
+}
+function invUse(id){
+  if (invCount(id) <= 0) return false;
+  inv[id] = invCount(id) - 1;
+  save();
+  return true;
+}
+
+// Brain rots you can buy with coins (consumables)
+const BRAINROTS = [
+  { id:'miniSigma', name:'Mini Σ Snack', cost:30, desc:'Instant +40 Bag, +10 Score', hotkey:'1' },
+  { id:'megaSigma', name:'Mega Σ Chunk', cost:70, desc:'Instant +120 Score, +60 Bag', hotkey:'2' },
+  { id:'jammer', name:'Anti-Guard Jammer', cost:90, desc:'Slows guards for 3s', hotkey:'3' },
+  { id:'heart', name:'Heart Patch', cost:120, desc:'+1 Heart (max 3)', hotkey:'4' },
+];
+
+function renderShop(){
+  shopCoinsEl.textContent = fmtBigInt(coins);
+  renderShopInto(shopOverlayList);
+  renderShopInto(shopList);
+}
+
+function renderShopInto(container){
+  container.innerHTML = '';
+
+  // Skins header
+  const head1 = document.createElement('div');
+  head1.className = 'help';
+  head1.innerHTML = '<b>Skins</b>';
+  container.appendChild(head1);
+
+  for (const s of SKINS){
+    const isOwned = owned.has(s.id);
+    const isSel = skinId === s.id;
+    const div = document.createElement('div');
+    div.className = 'shopItem';
+    const left = document.createElement('div');
+    left.innerHTML = `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${s.col};box-shadow:0 0 14px ${s.glow};vertical-align:middle;margin-right:8px"></span>
+      ${s.name}
+      <span class="tag ${isOwned ? 'owned' : 'locked'}">${isOwned ? (isSel ? 'SELECTED' : 'OWNED') : (s.cost + ' COINS')}</span>
+      <small>Looks: ${s.id}</small>`;
+    const btn = document.createElement('button');
+    btn.className = 'secondary tinyBtn';
+    if (!isOwned){
+      btn.textContent = 'Buy';
+      btn.disabled = coins < BigInt(s.cost);
+      btn.addEventListener('click', () => {
+        if (coins < BigInt(s.cost)) return;
+        coins -= BigInt(s.cost);
+        owned.add(s.id);
+        skinId = s.id;
+        save();
+        renderShop();
+        updateHUD();
+      });
+    } else {
+      btn.textContent = isSel ? 'Using' : 'Select';
+      btn.disabled = isSel;
+      btn.addEventListener('click', () => {
+        skinId = s.id;
+        save();
+        renderShop();
+      });
+    }
+    div.appendChild(left);
+    div.appendChild(btn);
+    container.appendChild(div);
+  }
+
+  // Upgrades header
+  const head2 = document.createElement('div');
+  head2.className = 'help';
+  head2.style.marginTop = '8px';
+  head2.innerHTML = '<b>Upgrades</b>';
+  container.appendChild(head2);
+
+  for (const u of UPGRADES){
+    const lv = upgrades[u.id] || 0;
+    const cost = upgradeCost(u.id);
+    const div = document.createElement('div');
+    div.className = 'shopItem';
+    const left = document.createElement('div');
+    left.innerHTML = `${u.name}
+      <span class="tag owned">LV ${lv}/${u.max}</span>
+      <span class="tag ${coins >= BigInt(cost) && lv < u.max ? 'owned' : 'locked'}">${lv >= u.max ? 'MAX' : (cost + ' COINS')}</span>
+      <small>${u.desc}</small>`;
+    const btn = document.createElement('button');
+    btn.className = 'secondary tinyBtn';
+    btn.textContent = (lv >= u.max) ? 'Maxed' : 'Upgrade';
+    btn.disabled = (lv >= u.max) || (coins < BigInt(cost));
+    btn.addEventListener('click', () => {
+      const cur = upgrades[u.id] || 0;
+      if (cur >= u.max) return;
+      const c = upgradeCost(u.id);
+      if (coins < BigInt(c)) return;
+      coins -= BigInt(c);
+      upgrades[u.id] = cur + 1;
+      save();
+      renderShop();
+      updateHUD();
+    });
+    div.appendChild(left);
+    div.appendChild(btn);
+    container.appendChild(div);
+  }
+
+  // Brain rots (consumables)
+  const head3 = document.createElement('div');
+  head3.className = 'help';
+  head3.style.marginTop = '8px';
+  head3.innerHTML = '<b>Brain Rots (Consumables)</b> <span class="tag owned">Use keys 1-4</span>';
+  container.appendChild(head3);
+
+  for (const b of BRAINROTS){
+    const count = invCount(b.id);
+    const div = document.createElement('div');
+    div.className = 'shopItem';
+    const left = document.createElement('div');
+    left.innerHTML = `${b.name}
+      <span class="tag ${count > 0 ? 'owned' : 'locked'}">x${count}</span>
+      <span class="tag ${coins >= BigInt(b.cost) ? 'owned' : 'locked'}">${b.cost} COINS</span>
+      <small>${b.desc} (key ${b.hotkey})</small>`;
+
+    const rightWrap = document.createElement('div');
+    rightWrap.style.display = 'flex';
+    rightWrap.style.gap = '8px';
+
+    const buyBtn = document.createElement('button');
+    buyBtn.className = 'secondary tinyBtn';
+    buyBtn.textContent = 'Buy';
+    buyBtn.disabled = coins < BigInt(b.cost);
+    buyBtn.addEventListener('click', () => {
+      if (coins < BigInt(b.cost)) return;
+      coins -= BigInt(b.cost);
+      invAdd(b.id, 1);
+      renderShop();
+      updateHUD();
+      addChat('SYSTEM', `Bought ${b.name}.`, 'sys');
+    });
+
+    const useBtn = document.createElement('button');
+    useBtn.className = 'tinyBtn';
+    useBtn.textContent = 'Use';
+    useBtn.disabled = count <= 0 || !running || paused || gameOver;
+    useBtn.addEventListener('click', () => {
+      useBrainRot(b.id);
+      renderShop();
+      updateHUD();
+    });
+
+    rightWrap.appendChild(buyBtn);
+    rightWrap.appendChild(useBtn);
+
+    div.appendChild(left);
+    div.appendChild(rightWrap);
+    container.appendChild(div);
+  }
+}
+
+// -----------------------------
+// Input
+// -----------------------------
+const keys = new Set();
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') e.preventDefault();
+  keys.add(e.key);
+  if (e.code === 'Space' && running && !paused && !gameOver) dash();
+});
+document.addEventListener('keyup', (e) => keys.delete(e.key));
+
+const hold = { left:false,right:false,up:false,down:false };
+function bindHold(el, which){
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); hold[which] = true; });
+  window.addEventListener('pointerup', () => { hold[which] = false; });
+  el.addEventListener('pointerleave', () => { hold[which] = false; });
+}
+bindHold(btnLeft,'left');
+bindHold(btnRight,'right');
+bindHold(btnUp,'up');
+bindHold(btnDown,'down');
+btnDash.addEventListener('click', () => dash());
+btnShop2.addEventListener('click', () => openShop());
+
+// -----------------------------
+// Game entities
+// -----------------------------
+const WORLD = { w: 2200, h: 1600 };
+const npcs = [];   // steal targets
+const guards = []; // chase you
+const hazards = []; // anti-rot zones
+const particles = [];
+const rotDrops = [];  // machine outputs: {x,y,r, value, col}
+const sharks = [];    // collectible sharks
+const critters = [];  // collectible silly animals
+
+// Brain Rot Machine (crafting station)
+const machine = {
+  x: WORLD.w*0.22,
+  y: WORLD.h*0.28,
+  r: 48,
+  lvl: 0,          // from upgrades.machine (mirrors)
+  stored: 0,       // deposited rot
+  progress: 0,     // 0..1
+  busy: false
+};
+
+let running=false, paused=false, gameOver=false;
+const ROUND_MS = 90 * 1000;
+let roundEnd = 0;
+let lastT = 0;
+
+const you = {
+  x:0, y:0, vx:0, vy:0,
+  r: 16,
+  hp: 3,
+  shield: 0,
+  score: 0,
+  bag: 0,          // rot in your pocket (spend at machine)
+  dashCd: 0,
+  dashT: 0
+};
+
+let sharksThisRun = 0;
+let crittersThisRun = 0;
+
+const CRITTER_BASE_TYPES = [
+  { id:'bananaCat', name:'Banana Cat', col:'#ffd84d', accent:'#ff7f00' },
+  { id:'capybara', name:'Capybara', col:'#a76a2a', accent:'#7a4a1a' },
+  { id:'duck', name:'Silly Duck', col:'#ffd84d', accent:'#ff7f00' },
+  { id:'axolotl', name:'Axolotl', col:'#ff4d6d', accent:'#ffd1ea' },
+  { id:'penguin', name:'Tiny Penguin', col:'#111827', accent:'#5bf7ff' },
+  { id:'frog', name:'Froggo', col:'#2eea74', accent:'#a2ff4d' },
+];
+
+function monthKey(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+function seededRng(seedStr){
+  // Tiny deterministic RNG (LCG) from a string seed. Same month => same animals.
+  let seed = 2166136261 >>> 0; // FNV-ish
+  for (let i=0;i<seedStr.length;i++){
+    seed ^= seedStr.charCodeAt(i);
+    seed = Math.imul(seed, 16777619) >>> 0;
+  }
+  return () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+}
+
+function genMonthlyCritters(){
+  const mk = monthKey();
+  const r = seededRng(`brainrot-${mk}`);
+  const adjectives = ['Goofy','Wiggly','Zoomy','Chonky','Spicy','Sleepy','Drippy','Bouncy','Tiny','Mega','Galaxy','Neon'];
+  const animals = ['Hamster','Otter','Llama','Pigeon','Shark','Crab','Giraffe','Bunny','Panda','Koala','Seal','Moth'];
+  const extras = [];
+  for (let i=0;i<6;i++){
+    const a = adjectives[Math.floor(r()*adjectives.length)];
+    const b = animals[Math.floor(r()*animals.length)];
+    const id = `m_${mk}_${i}`;
+    const hue = Math.floor(r()*360);
+    const col = `hsl(${hue} 90% 55%)`;
+    const accent = `hsl(${(hue+70)%360} 95% 58%)`;
+    extras.push({ id, name:`${a} ${b}`, col, accent, monthly:true });
+  }
+  return extras;
+}
+
+function isChristmasSeason(){
+  // Holiday critters appear only around Christmas (local time).
+  // Window: Dec 20 -> Dec 31 (inclusive)
+  const d = new Date();
+  const m = d.getMonth() + 1; // 1-12
+  const day = d.getDate();
+  return (m === 12 && day >= 20);
+}
+
+function getCritterTypes(){
+  // Base animals + rotating monthly animals + holiday-only animals.
+  const list = CRITTER_BASE_TYPES.concat(genMonthlyCritters());
+  if (isChristmasSeason()){
+    list.push({
+      id:'xmasReindeer',
+      name:'Christmas Reindeer',
+      col:'#a76a2a',
+      accent:'#ff4d6d',
+      holiday:true
+    });
+  }
+  return list;
+}
+
+function spawnCritter(){
+  const types = getCritterTypes();
+  const t = types[Math.floor(rand(0, types.length))];
+  critters.push({
+    type: t.id,
+    name: t.name,
+    col: t.col,
+    accent: t.accent,
+    x: rand(140, WORLD.w-140),
+    y: rand(140, WORLD.h-140),
+    r: rand(14, 18),
+    wob: rand(0, Math.PI*2),
+  });
+}
+
+function respawnCritter(i){
+  const types = getCritterTypes();
+  const t = types[Math.floor(rand(0, types.length))];
+  const c = critters[i];
+  c.type = t.id;
+  c.name = t.name;
+  c.col = t.col;
+  c.accent = t.accent;
+  c.x = rand(140, WORLD.w-140);
+  c.y = rand(140, WORLD.h-140);
+  c.r = rand(14, 18);
+  c.wob = rand(0, Math.PI*2);
+}
+
+function spawnShark(){
+  sharks.push({
+    x: rand(140, WORLD.w-140),
+    y: rand(140, WORLD.h-140),
+    r: rand(14, 18),
+    wob: rand(0, Math.PI*2),
+  });
+}
+
+function respawnShark(i){
+  sharks[i].x = rand(140, WORLD.w-140);
+  sharks[i].y = rand(140, WORLD.h-140);
+  sharks[i].r = rand(14, 18);
+  sharks[i].wob = rand(0, Math.PI*2);
+}
+
+function resetGame(){
+  npcs.length = 0;
+  guards.length = 0;
+  hazards.length = 0;
+  particles.length = 0;
+  rotDrops.length = 0;
+  sharks.length = 0;
+  critters.length = 0;
+
+  you.x = WORLD.w*0.5;
+  you.y = WORLD.h*0.5;
+  you.vx = 0;
+  you.vy = 0;
+  you.r = 16;
+  you.hp = 3;
+  you.shield = (upgrades.shield || 0) > 0 ? 1 : 0;
+  you.score = 0;
+  you.bag = 0;
+  you.dashCd = 0;
+  you.dashT = 0;
+  sharksThisRun = 0;
+  crittersThisRun = 0;
+
+  // Machine sync
+  machine.lvl = upgrades.machine || 0;
+  machine.stored = 0;
+  machine.progress = 0;
+  machine.busy = false;
+
+  // NPCs
+  const names = ['Sigma','Rizz','Skib','Mew','Aura','W','L','Gyatt','Yeet','Zoom'];
+  for (let i=0;i<16;i++){
+    npcs.push({
+      x: rand(140, WORLD.w-140),
+      y: rand(140, WORLD.h-140),
+      r: rand(14, 18),
+      rot: rand(30, 70),
+      vx: rand(-60,60),
+      vy: rand(-60,60),
+      name: names[i % names.length],
+      col: ['#22ffb6','#ffd84d','#5bf7ff','#be00be','#a2ff4d','#ff7f00'][i % 6],
+      stunned: 0
+    });
+  }
+
+  // Guards
+  for (let i=0;i<5;i++){
+    guards.push({
+      x: rand(180, WORLD.w-180),
+      y: rand(180, WORLD.h-180),
+      r: 18,
+      speed: rand(95, 120),
+      tagCd: 0
+    });
+  }
+
+  // Hazards (anti-rot zones)
+  for (let i=0;i<6;i++){
+    hazards.push({
+      x: rand(240, WORLD.w-240),
+      y: rand(240, WORLD.h-240),
+      r: rand(70, 120),
+      pulse: rand(0, Math.PI*2)
+    });
+  }
+
+  roundEnd = now() + ROUND_MS;
+  paused = false;
+  gameOver = false;
+  lastT = 0;
+  btnPause.textContent = 'Pause';
+  updateHUD();
+  renderShop();
+
+  // Chat reset
+  chat = [];
+  addChat('SYSTEM', 'Welcome! Steal Σ from NPCs. Use the machine to craft better rot.', 'sys');
+  scheduleAIChat();
+
+  // Collectible sharks
+  for (let i=0;i<6;i++) spawnShark();
+  // Collectible silly animals
+  for (let i=0;i<10;i++) spawnCritter();
+}
+
+function start(){
+  resetGame();
+  running = true;
+  overlay.classList.add('hidden');
+}
+
+function endRound(reason){
+  gameOver = true;
+  paused = false;
+
+  const bonusLv = upgrades.bonus || 0;
+  const coinMul = 1 + bonusLv * 0.08;
+  const earned = Math.max(1, Math.floor((you.score / 40) * coinMul));
+  coins += BigInt(earned);
+  save();
+  renderShop();
+  updateHUD();
+
+  ovTitle.textContent = (reason === 'win') ? 'YOU SURVIVED!' : 'TAGGED OUT!';
+  ovText.innerHTML = `Score: <b>${Math.floor(you.score)}</b><br/>Coins earned: <b>${earned}</b><br/><br/>Go SHOP for upgrades.`;
+  btnPlay.textContent = 'Play Again';
+  overlay.classList.remove('hidden');
+
+  addChat('SYSTEM', `Round over! You earned ${earned} coins.`, 'sys');
+}
+
+btnPlay.addEventListener('click', start);
+btnPlayFromShop.addEventListener('click', start);
+btnRestart.addEventListener('click', () => start());
+btnPause.addEventListener('click', () => {
+  if (!running || gameOver) return;
+  paused = !paused;
+  btnPause.textContent = paused ? 'Resume' : 'Pause';
+});
+
+btnShop.addEventListener('click', () => openShop());
+btnBackHome.addEventListener('click', () => closeShop());
+
+function openShop(){
+  homeOnlyEl.style.display = 'none';
+  shopOverlayEl.style.display = 'block';
+  overlay.classList.remove('hidden');
+  renderShop();
+}
+function closeShop(){
+  shopOverlayEl.style.display = 'none';
+  homeOnlyEl.style.display = 'block';
+}
+
+function updateHUD(){
+  scoreEl.textContent = String(Math.floor(you.score));
+  hpEl.textContent = you.hp >= 3 ? '❤❤❤' : you.hp === 2 ? '❤❤' : you.hp === 1 ? '❤' : '—';
+  coinsEl.textContent = fmtBigInt(coins);
+  shopCoinsEl.textContent = fmtBigInt(coins);
+  sharksEl.textContent = String(sharksThisRun);
+  animalsEl.textContent = String(crittersThisRun);
+  timeEl.textContent = fmtTime(roundEnd - now());
+}
+
+// -----------------------------
+// Camera + draw helpers
+// -----------------------------
+function camera(){
+  const zoom = clamp(1.25 - you.score/1400, 0.78, 1.22);
+  const viewW = canvas.width / zoom;
+  const viewH = canvas.height / zoom;
+  const cx = clamp(you.x - viewW/2, 0, WORLD.w - viewW);
+  const cy = clamp(you.y - viewH/2, 0, WORLD.h - viewH);
+  return { x: cx, y: cy, zoom };
+}
+
+function burst(x,y,col,n=14){
+  for (let i=0;i<n;i++){
+    particles.push({
+      x,y,
+      vx: rand(-260,260),
+      vy: rand(-260,260),
+      life: rand(0.25,0.85),
+      r: rand(2,5),
+      col
+    });
+  }
+}
+
+// -----------------------------
+// Gameplay
+// -----------------------------
+function dash(){
+  const dashLv = upgrades.dash || 0;
+  const cd = clamp(1.55 - dashLv*0.12, 0.70, 1.55);
+  if (you.dashCd > 0) return;
+
+  // dash direction = current input direction, or current velocity, else upward
+  let dx = 0, dy = 0;
+  const left = keys.has('ArrowLeft') || keys.has('a') || keys.has('A') || hold.left;
+  const right = keys.has('ArrowRight') || keys.has('d') || keys.has('D') || hold.right;
+  const up = keys.has('ArrowUp') || keys.has('w') || keys.has('W') || hold.up;
+  const down = keys.has('ArrowDown') || keys.has('s') || keys.has('S') || hold.down;
+  dx = (left?-1:0) + (right?1:0);
+  dy = (up?-1:0) + (down?1:0);
+  if (dx === 0 && dy === 0){
+    const m = Math.hypot(you.vx, you.vy);
+    if (m > 1){ dx = you.vx/m; dy = you.vy/m; }
+    else { dx = 0; dy = -1; }
+  } else {
+    const m = Math.hypot(dx,dy) || 1;
+    dx /= m; dy /= m;
+  }
+
+  const base = 650;
+  you.vx += dx * base;
+  you.vy += dy * base;
+  you.dashT = 0.16;
+  you.dashCd = cd;
+  burst(you.x, you.y, '#5bf7ff', 16);
+}
+
+function update(dt){
+  // Passive income: each collected animal gives coins per second (persistent totals)
+  // This is based on totals across all runs.
+  const animalCount = Math.max(0, (sharksTotal|0) + (crittersTotal|0));
+  if (animalCount > 0){
+    // Convert dt to integer milliseconds for exact BigInt math
+    const ms = Math.max(0, Math.floor(dt * 1000));
+    coinCarryMs += ms;
+    // process whole milliseconds in chunks to keep values bounded
+    if (coinCarryMs >= 1){
+      const add = BigInt(animalCount) * COINS_PER_SECOND_PER_ANIMAL * BigInt(coinCarryMs) / 1000n;
+      if (add > 0n) coins += add;
+      // keep remainder ms (mod 1000) so division stays correct
+      coinCarryMs = coinCarryMs % 1000;
+    }
+  }
+
+  // win condition
+  if (now() >= roundEnd){
+    endRound('win');
+    return;
+  }
+
+  // difficulty ramps a bit
+  const level = 1 + Math.floor(you.score / 280);
+  const speedLv = upgrades.speed || 0;
+  const baseSpeed = 190 * (1 + speedLv*0.06);
+  const maxSpd = baseSpeed + level*8;
+
+  // input vector
+  const left = keys.has('ArrowLeft') || keys.has('a') || keys.has('A') || hold.left;
+  const right = keys.has('ArrowRight') || keys.has('d') || keys.has('D') || hold.right;
+  const up = keys.has('ArrowUp') || keys.has('w') || keys.has('W') || hold.up;
+  const down = keys.has('ArrowDown') || keys.has('s') || keys.has('S') || hold.down;
+  let ix = (left?-1:0) + (right?1:0);
+  let iy = (up?-1:0) + (down?1:0);
+  const im = Math.hypot(ix,iy);
+  if (im > 1){ ix/=im; iy/=im; }
+
+  // accelerate
+  const accel = 1200;
+  you.vx += ix * accel * dt;
+  you.vy += iy * accel * dt;
+
+  // friction
+  you.vx *= Math.pow(0.86, dt*60);
+  you.vy *= Math.pow(0.86, dt*60);
+
+  // cap speed
+  const sp = Math.hypot(you.vx, you.vy);
+  if (sp > maxSpd){
+    you.vx = (you.vx/sp) * maxSpd;
+    you.vy = (you.vy/sp) * maxSpd;
+  }
+
+  // timers
+  you.dashCd = Math.max(0, you.dashCd - dt);
+  you.dashT = Math.max(0, you.dashT - dt);
+
+  // integrate
+  you.x += you.vx * dt;
+  you.y += you.vy * dt;
+  you.x = clamp(you.x, you.r, WORLD.w - you.r);
+  you.y = clamp(you.y, you.r, WORLD.h - you.r);
+
+  // hazards slow you + score drain a little
+  for (const hz of hazards){
+    hz.pulse += dt * 2.0;
+    const dx = you.x - hz.x, dy = you.y - hz.y;
+    const d = Math.hypot(dx,dy);
+    if (d < hz.r){
+      const slow = 0.55;
+      you.vx *= Math.pow(slow, dt*10);
+      you.vy *= Math.pow(slow, dt*10);
+      you.score = Math.max(0, you.score - dt * 6);
+    }
+  }
+
+  // NPC wander + steal
+  for (const n of npcs){
+    if (n.stunned > 0){
+      n.stunned -= dt;
+      continue;
+    }
+    // wander
+    n.x += n.vx * dt;
+    n.y += n.vy * dt;
+    if (n.x < 120 || n.x > WORLD.w-120) n.vx *= -1;
+    if (n.y < 120 || n.y > WORLD.h-120) n.vy *= -1;
+    if (Math.random() < 0.012){
+      n.vx += rand(-50,50);
+      n.vy += rand(-50,50);
+      const sp2 = Math.hypot(n.vx,n.vy);
+      const cap = 105;
+      if (sp2 > cap){ n.vx = (n.vx/sp2)*cap; n.vy = (n.vy/sp2)*cap; }
+    }
+
+    // steal on touch
+    const dx = you.x - n.x, dy = you.y - n.y;
+    const rr = you.r + n.r;
+    if (dx*dx + dy*dy <= rr*rr){
+      const take = Math.min(n.rot, 18 + you.score*0.002);
+      n.rot -= take;
+      you.score += take;
+      you.bag += take;
+      n.stunned = 0.25;
+      burst(n.x, n.y, n.col, 10);
+      // respawn NPC if empty
+      if (n.rot <= 0){
+        n.x = rand(140, WORLD.w-140);
+        n.y = rand(140, WORLD.h-140);
+        n.rot = rand(35, 80);
+        n.vx = rand(-70,70);
+        n.vy = rand(-70,70);
+        n.stunned = 0.4;
+      }
+    }
+  }
+
+  // Your interaction with machine (press E)
+  const nearMachine = ((you.x - machine.x)*(you.x - machine.x) + (you.y - machine.y)*(you.y - machine.y)) < (machine.r + 34)*(machine.r + 34);
+  if (nearMachine && (keys.has('e') || keys.has('E'))){
+    // one-shot press: clear key to avoid spamming
+    keys.delete('e'); keys.delete('E');
+    if (!machine.busy && you.bag >= 40){
+      const deposit = Math.min(110, you.bag);
+      you.bag -= deposit;
+      machine.stored += deposit;
+      machine.busy = true;
+      machine.progress = 0;
+      addChat('SYSTEM', `You loaded the Brain Rot Machine with ${Math.floor(deposit)} rot.`, 'sys');
+    } else if (machine.busy){
+      addChat('SYSTEM', 'Machine is already cooking…', 'sys');
+    } else {
+      addChat('SYSTEM', 'Need at least 40 rot in your bag to use the machine.', 'sys');
+    }
+  }
+
+  // Machine processing -> produces better rot drops
+  if (machine.busy){
+    const speedLv = machine.lvl;
+    const cookTime = clamp(2.6 - speedLv*0.22, 1.4, 2.6);
+    machine.progress += dt / cookTime;
+    if (machine.progress >= 1){
+      machine.progress = 0;
+      machine.busy = false;
+      // output depends on stored amount
+      const tier = (machine.stored >= 140) ? 3 : (machine.stored >= 90) ? 2 : 1;
+      const value = tier === 3 ? 90 : tier === 2 ? 55 : 30;
+      const col = tier === 3 ? '#ffd84d' : tier === 2 ? '#5bf7ff' : '#22ffb6';
+      rotDrops.push({ x: machine.x + rand(-14,14), y: machine.y + rand(-14,14), r: 14, value, col, tier });
+      machine.stored = Math.max(0, machine.stored - 110);
+      burst(machine.x, machine.y, col, 22);
+      addChat('SYSTEM', `Machine crafted a Tier ${tier} rot token!`, 'sys');
+    }
+  }
+
+  // Collect machine outputs
+  for (let i=rotDrops.length-1;i>=0;i--){
+    const d = rotDrops[i];
+    // you collect
+    const dx = you.x - d.x, dy = you.y - d.y;
+    if (dx*dx + dy*dy < (you.r + d.r)*(you.r + d.r)){
+      rotDrops.splice(i,1);
+      you.score += d.value;
+      you.bag += d.value * 0.6;
+      burst(d.x, d.y, d.col, 18);
+      addChat('SYSTEM', `You picked up Tier ${d.tier} rot (+${d.value}).`, 'sys');
+      continue;
+    }
+  }
+
+  // Sharks: bob + collect
+  for (let i=0;i<sharks.length;i++){
+    const s = sharks[i];
+    s.wob += dt * 3.0;
+    // tiny floaty movement
+    s.x += Math.cos(s.wob) * 10 * dt;
+    s.y += Math.sin(s.wob*0.9) * 10 * dt;
+    s.x = clamp(s.x, 120, WORLD.w-120);
+    s.y = clamp(s.y, 120, WORLD.h-120);
+
+    const dx = you.x - s.x, dy = you.y - s.y;
+    const rr = you.r + s.r;
+    if (dx*dx + dy*dy <= rr*rr){
+      sharksThisRun += 1;
+      sharksTotal += 1;
+      coins += 10n; // instant coins for collecting a shark
+      you.score += 120;
+      you.bag += 70;
+      save();
+      burst(s.x, s.y, '#0066ff', 26);
+      addChat('SYSTEM', `You collected a BLUE SHARK! (+10 coins)`, 'sys');
+
+      // Unlock the Tralalero Tralala skin after 3 total sharks
+      if (sharksTotal >= 3 && !owned.has('sharkShoes')){
+        owned.add('sharkShoes');
+        skinId = 'sharkShoes';
+        save();
+        addChat('SYSTEM', 'Unlocked skin: Tralalero Tralala!', 'sys');
+        renderShop();
+      }
+      // respawn this shark somewhere else
+      respawnShark(i);
+    }
+  }
+
+  // Silly animals: bob + collect
+  for (let i=0;i<critters.length;i++){
+    const c = critters[i];
+    c.wob += dt * 2.6;
+    c.x += Math.cos(c.wob*0.9) * 8 * dt;
+    c.y += Math.sin(c.wob*0.8) * 8 * dt;
+    c.x = clamp(c.x, 120, WORLD.w-120);
+    c.y = clamp(c.y, 120, WORLD.h-120);
+
+    const dx = you.x - c.x, dy = you.y - c.y;
+    const rr = you.r + c.r;
+    if (dx*dx + dy*dy <= rr*rr){
+      crittersThisRun += 1;
+      crittersTotal += 1;
+      const coinGain = 4 + Math.floor(Math.random()*7); // 4..10
+      coins += BigInt(coinGain);
+      const scoreGain = 60 + Math.floor(Math.random()*80); // 60..139
+      you.score += scoreGain;
+      you.bag += 35 + Math.random()*45;
+      save();
+      burst(c.x, c.y, c.accent, 20);
+      addChat('SYSTEM', `Collected ${c.name}! (+${coinGain} coins)`, 'sys');
+      respawnCritter(i);
+    }
+  }
+
+  // Auto-save (avoid saving every frame)
+  if (now() - lastAutoSaveAt > 1200){
+    lastAutoSaveAt = now();
+    save();
+  }
+
+  // Guards chase + tag
+  for (const g of guards){
+    g.tagCd = Math.max(0, g.tagCd - dt);
+    // chase vector
+    let tx = you.x, ty = you.y;
+    // avoid hazards a bit
+    for (const hz of hazards){
+      const dx = g.x - hz.x, dy = g.y - hz.y;
+      const d = Math.hypot(dx,dy);
+      if (d < hz.r + 40){
+        tx += (dx/d) * 80;
+        ty += (dy/d) * 80;
+      }
+    }
+    const dx = tx - g.x, dy = ty - g.y;
+    const m = Math.hypot(dx,dy) || 1;
+    const spd = g.speed + Math.floor(you.score/300) * 3;
+    g.x += (dx/m) * spd * dt;
+    g.y += (dy/m) * spd * dt;
+    g.x = clamp(g.x, g.r, WORLD.w - g.r);
+    g.y = clamp(g.y, g.r, WORLD.h - g.r);
+
+    const ddx = you.x - g.x, ddy = you.y - g.y;
+    const rr = you.r + g.r;
+    if (ddx*ddx + ddy*ddy <= rr*rr){
+      if (g.tagCd <= 0){
+        g.tagCd = 1.0;
+        if (you.shield > 0){
+          you.shield = 0;
+          burst(you.x, you.y, '#ffd84d', 26);
+        } else {
+          you.hp -= 1;
+          burst(you.x, you.y, '#ff4d6d', 32);
+          // knockback
+          const mm = Math.hypot(ddx,ddy) || 1;
+          you.vx += (ddx/mm) * 450;
+          you.vy += (ddy/mm) * 450;
+          if (you.hp <= 0){
+            endRound('lose');
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  // Particles
+  for (let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= Math.pow(0.88, dt*60);
+    p.vy *= Math.pow(0.88, dt*60);
+    if (p.life <= 0) particles.splice(i,1);
+  }
+
+  updateHUD();
+  aiChatTick();
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const cam = camera();
+  ctx.save();
+  ctx.scale(cam.zoom, cam.zoom);
+  ctx.translate(-cam.x, -cam.y);
+
+  // subtle grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let x=0; x<WORLD.w; x+=120){
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, WORLD.h);
+    ctx.stroke();
+  }
+  for (let y=0; y<WORLD.h; y+=120){
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(WORLD.w, y);
+    ctx.stroke();
+  }
+
+  // hazards
+  for (const hz of hazards){
+    const pulse = 0.08 + 0.06*Math.sin(hz.pulse);
+    ctx.globalAlpha = 0.35 + pulse;
+    ctx.fillStyle = 'rgba(255,77,109,0.55)';
+    ctx.beginPath();
+    ctx.arc(hz.x, hz.y, hz.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = 'rgba(255,77,109,0.55)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(hz.x, hz.y, hz.r, 0, Math.PI*2);
+    ctx.stroke();
+  }
+
+  // machine
+  ctx.globalAlpha = 1;
+  ctx.shadowColor = '#5bf7ff';
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = 'rgba(91,247,255,0.22)';
+  ctx.beginPath();
+  ctx.arc(machine.x, machine.y, machine.r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(91,247,255,0.75)';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.arc(machine.x, machine.y, machine.r, 0, Math.PI*2);
+  ctx.stroke();
+  // core
+  const core = 18 + (machine.busy ? 6*Math.sin(now()*0.01) : 0);
+  ctx.fillStyle = machine.busy ? 'rgba(255,216,77,0.85)' : 'rgba(34,255,182,0.85)';
+  ctx.beginPath();
+  ctx.arc(machine.x, machine.y, core, 0, Math.PI*2);
+  ctx.fill();
+  // progress ring
+  if (machine.busy){
+    ctx.strokeStyle = '#ffd84d';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(machine.x, machine.y, machine.r + 10, -Math.PI/2, -Math.PI/2 + Math.PI*2*clamp(machine.progress,0,1));
+    ctx.stroke();
+  }
+  // label
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = '900 16px Verdana';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('MACHINE', machine.x, machine.y + machine.r + 6);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+
+  // machine outputs
+  for (const d of rotDrops){
+    ctx.shadowColor = d.col;
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = d.col;
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.font = `900 ${Math.floor(d.r*1.2)}px Verdana`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Σ', d.x, d.y + 1);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // collectible sharks
+  for (const s of sharks){
+    // body
+    ctx.shadowColor = '#5bf7ff';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = '#0066ff';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // fin
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.moveTo(s.x - s.r*0.1, s.y - s.r*1.05);
+    ctx.lineTo(s.x + s.r*0.3, s.y - s.r*0.25);
+    ctx.lineTo(s.x - s.r*0.55, s.y - s.r*0.25);
+    ctx.closePath();
+    ctx.fill();
+
+    // 3 blue shoes
+    const sw = s.r*0.52, sh = s.r*0.26;
+    const baseY = s.y + s.r*0.75;
+    const xs = [s.x - s.r*0.62, s.x, s.x + s.r*0.62];
+    ctx.shadowColor = 'rgba(0,102,255,0.65)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#0066ff';
+    for (let i=0;i<3;i++){
+      const x = xs[i];
+      roundRect(x - sw/2, baseY - sh/2, sw, sh, 8, true, false);
+      ctx.beginPath();
+      ctx.arc(x + sw*0.34, baseY, sh*0.45, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  // collectible silly animals
+  for (const c of critters){
+    ctx.shadowColor = c.accent;
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = c.col;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // simple cute faces per type
+    if (c.type === 'xmasReindeer'){
+      // Reindeer antlers + red nose
+      ctx.strokeStyle = c.accent;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(c.x - c.r*0.55, c.y - c.r*0.95);
+      ctx.lineTo(c.x - c.r*0.30, c.y - c.r*0.55);
+      ctx.moveTo(c.x - c.r*0.40, c.y - c.r*0.80);
+      ctx.lineTo(c.x - c.r*0.62, c.y - c.r*0.65);
+      ctx.moveTo(c.x + c.r*0.55, c.y - c.r*0.95);
+      ctx.lineTo(c.x + c.r*0.30, c.y - c.r*0.55);
+      ctx.moveTo(c.x + c.r*0.40, c.y - c.r*0.80);
+      ctx.lineTo(c.x + c.r*0.62, c.y - c.r*0.65);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ff4d6d';
+      ctx.beginPath();
+      ctx.arc(c.x + c.r*0.28, c.y + c.r*0.10, c.r*0.18, 0, Math.PI*2);
+      ctx.fill();
+    } else if (c.type === 'penguin'){
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(c.x, c.y + c.r*0.15, c.r*0.55, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = c.accent;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y + c.r*0.1, c.r*0.18, 0, Math.PI*2);
+      ctx.fill();
+    } else if (c.type === 'duck'){
+      ctx.fillStyle = c.accent;
+      ctx.beginPath();
+      ctx.arc(c.x + c.r*0.25, c.y + c.r*0.10, c.r*0.22, 0, Math.PI*2);
+      ctx.fill();
+    } else if (c.type === 'frog'){
+      ctx.fillStyle = '#111827';
+      ctx.beginPath();
+      ctx.arc(c.x - c.r*0.25, c.y - c.r*0.30, c.r*0.10, 0, Math.PI*2);
+      ctx.arc(c.x + c.r*0.25, c.y - c.r*0.30, c.r*0.10, 0, Math.PI*2);
+      ctx.fill();
+    } else if (c.type === 'axolotl'){
+      // gills
+      ctx.strokeStyle = c.accent;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(c.x - c.r*0.95, c.y - c.r*0.10);
+      ctx.lineTo(c.x - c.r*0.55, c.y - c.r*0.25);
+      ctx.moveTo(c.x + c.r*0.95, c.y - c.r*0.10);
+      ctx.lineTo(c.x + c.r*0.55, c.y - c.r*0.25);
+      ctx.stroke();
+    } else if (c.type === 'bananaCat'){
+      // banana peel points
+      ctx.fillStyle = c.accent;
+      ctx.beginPath();
+      ctx.moveTo(c.x, c.y - c.r*1.05);
+      ctx.lineTo(c.x - c.r*0.35, c.y - c.r*0.45);
+      ctx.lineTo(c.x + c.r*0.35, c.y - c.r*0.45);
+      ctx.closePath();
+      ctx.fill();
+    } else if (c.type === 'capybara'){
+      // nose
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.beginPath();
+      ctx.arc(c.x + c.r*0.15, c.y + c.r*0.10, c.r*0.18, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // tiny label dot
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.beginPath();
+    ctx.arc(c.x - c.r*0.25, c.y - c.r*0.25, 2.8, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // NPCs
+  for (const n of npcs){
+    ctx.shadowColor = n.col;
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = n.col;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Sigma label
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.font = `900 ${Math.floor(n.r*1.15)}px Verdana`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Σ', n.x, n.y + 1);
+    // rot bar
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(n.x - 18, n.y + n.r + 8, 36, 6);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillRect(n.x - 18, n.y + n.r + 8, clamp(n.rot/80, 0, 1) * 36, 6);
+  }
+
+  // Guards
+  for (const g of guards){
+    ctx.shadowColor = '#ff4d6d';
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = 'rgba(255,77,109,0.88)';
+    ctx.beginPath();
+    ctx.arc(g.x, g.y, g.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // badge
+    ctx.fillStyle = 'rgba(0,0,0,0.30)';
+    ctx.beginPath();
+    ctx.arc(g.x, g.y, g.r*0.45, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.80)';
+    ctx.font = `900 ${Math.floor(g.r*0.75)}px Verdana`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('!', g.x, g.y + 1);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // Player
+  const skin = skinById(skinId);
+  ctx.shadowColor = skin.glow;
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = skin.col;
+  ctx.beginPath();
+  ctx.arc(you.x, you.y, you.r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Special skin: Shark with 3 blue shoes
+  if (skin.pattern === 'sharkShoes'){
+    // name label
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = '900 16px Verdana';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('Tralalero Tralala', you.x, you.y - you.r - 10);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+
+    // shark fin
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.moveTo(you.x - you.r*0.2, you.y - you.r*1.25);
+    ctx.lineTo(you.x + you.r*0.25, you.y - you.r*0.35);
+    ctx.lineTo(you.x - you.r*0.55, you.y - you.r*0.35);
+    ctx.closePath();
+    ctx.fill();
+
+    // shark mouth arc
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(you.x + you.r*0.2, you.y + you.r*0.2, you.r*0.65, 0.15*Math.PI, 0.95*Math.PI);
+    ctx.stroke();
+
+    // teeth
+    ctx.fillStyle = 'rgba(255,255,255,0.80)';
+    const teeth = 6;
+    for (let i=0;i<teeth;i++){
+      const a = (0.18 + i*(0.72/(teeth-1))) * Math.PI;
+      const tx = you.x + you.r*0.2 + Math.cos(a) * you.r*0.62;
+      const ty = you.y + you.r*0.2 + Math.sin(a) * you.r*0.62;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(tx + Math.cos(a+0.35)*you.r*0.16, ty + Math.sin(a+0.35)*you.r*0.16);
+      ctx.lineTo(tx + Math.cos(a-0.35)*you.r*0.16, ty + Math.sin(a-0.35)*you.r*0.16);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // 3 blue shoes (little rounded rectangles)
+    const shoeCol = '#0066ff';
+    const shoeGlow = 'rgba(0,102,255,0.65)';
+    ctx.shadowColor = shoeGlow;
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = shoeCol;
+    const sw = you.r*0.55, sh = you.r*0.28;
+    const baseY = you.y + you.r*0.70;
+    const xs = [you.x - you.r*0.65, you.x, you.x + you.r*0.65];
+    for (let i=0;i<3;i++){
+      const x = xs[i];
+      roundRect(x - sw/2, baseY - sh/2, sw, sh, 8, true, false);
+      // tiny "toe" bump
+      ctx.beginPath();
+      ctx.arc(x + sw*0.34, baseY, sh*0.45, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  // face
+  ctx.fillStyle = 'rgba(0,0,0,0.30)';
+  ctx.beginPath();
+  ctx.arc(you.x - 6, you.y - 4, 3, 0, Math.PI*2);
+  ctx.arc(you.x + 6, you.y - 4, 3, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.30)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(you.x, you.y + 7, 8, 0, Math.PI);
+  ctx.stroke();
+
+  // shield ring
+  if (you.shield > 0){
+    ctx.strokeStyle = '#ffd84d';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(you.x, you.y, you.r + 6, 0, Math.PI*2);
+    ctx.stroke();
+  }
+
+  // dash ring
+  if (you.dashT > 0){
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = '#5bf7ff';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(you.x, you.y, you.r + 14 + (0.16-you.dashT)*60, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Particles
+  for (const p of particles){
+    ctx.globalAlpha = clamp(p.life / 0.85, 0, 1);
+    ctx.fillStyle = p.col;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+
+  // top hint (screen space)
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fillRect(10, 10, Math.min(520, canvas.width-20), 30);
+  ctx.fillStyle = 'rgba(255,255,255,0.90)';
+  ctx.font = '900 14px Verdana, "Comic Sans MS", sans-serif';
+  const dashTxt = you.dashCd > 0 ? `Dash: ${you.dashCd.toFixed(1)}s` : 'Dash: READY';
+  ctx.fillText(`Steal Σ • Avoid guards • ${dashTxt} • Bag: ${Math.floor(you.bag)} • Month: ${monthKey()}`, 18, 31);
+
+  // machine hint
+  const dxm = you.x - machine.x, dym = you.y - machine.y;
+  const nearMachine = (dxm*dxm + dym*dym) < (machine.r + 34)*(machine.r + 34);
+  if (nearMachine){
+    ctx.fillStyle = 'rgba(0,0,0,0.30)';
+    ctx.fillRect(10, 46, Math.min(560, canvas.width-20), 30);
+    ctx.fillStyle = 'rgba(255,255,255,0.90)';
+    ctx.font = '900 14px Verdana, "Comic Sans MS", sans-serif';
+    ctx.fillText(`Machine: press E to load 40+ bag rot (stored ${Math.floor(machine.stored)})`, 18, 67);
+  }
+}
+
+function frame(t){
+  requestAnimationFrame(frame);
+  if (!running){ draw(); return; }
+  if (paused || gameOver){ draw(); return; }
+  if (!lastT) lastT = t;
+  const dt = Math.min(0.033, (t - lastT) / 1000);
+  lastT = t;
+  update(dt);
+  draw();
+}
+requestAnimationFrame(frame);
+
+// init UI
+renderShop();
+updateHUD();
+addChat('SYSTEM', 'Click PLAY to start. Use SHOP to buy skins/upgrades.', 'sys');
+
+</script>
+</body>
+</html>
+
+
